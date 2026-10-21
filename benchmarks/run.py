@@ -137,6 +137,13 @@ def m_unisal(img, ppd):
     return unisal(img)
 
 
+def m_unisal_ueyes(img, ppd):
+    """UNISAL fine-tuned on the UEyes train split (benchmarks/finetune_unisal.py). Run it in its own process:
+    the weights are chosen when the model first loads."""
+    os.environ.setdefault("MA_UNISAL_WEIGHTS", str(BENCH / "models/unisal_ueyes.pth"))
+    return unisal(img)
+
+
 def m_deepgaze_iie(img, ppd):
     return deepgaze(img)
 
@@ -191,7 +198,8 @@ def m_transalnet(img, ppd):
 
 
 MODELS = {"center": m_center, "spectral": m_spectral, "deepgaze_iie": m_deepgaze_iie,
-          "deepgaze_msdb": m_deepgaze_msdb, "transalnet": m_transalnet, "unisal": m_unisal}
+          "deepgaze_msdb": m_deepgaze_msdb, "transalnet": m_transalnet, "unisal": m_unisal,
+          "unisal_ueyes": m_unisal_ueyes}
 
 
 # ---------------------------------------------------------------- metrics
