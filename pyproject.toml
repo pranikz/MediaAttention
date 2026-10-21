@@ -1,0 +1,23 @@
+[project]
+name = "mediaattention"
+version = "0.1.0"
+description = "Open-source predicted attention heatmaps and creative scoring for ads and media"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = ["numpy", "scipy", "pillow"]
+
+[project.optional-dependencies]
+deepgaze = ["torch", "torchvision", "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze"]
+aoi = ["torch", "transformers"]
+dev = ["pytest"]
+
+[project.scripts]
+mediaattention = "mediaattention.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
