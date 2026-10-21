@@ -102,8 +102,10 @@ kbd { font: 600 14px ui-monospace, Menlo, monospace; border: 1px solid var(--lin
 <section class="screen" id="s-done"><div class="panel">
   <div class="label">Done · thank you</div>
   <h1>That's it</h1>
-  <p>Download your results and send the file to the person who shared this study. It contains gaze coordinates and answers only.</p>
-  <button class="pill solid" id="b-download">Download results</button>
+  <p>Your results contain gaze positions, answers and reaction times only. Nothing has been sent yet.</p>
+  <div id="send-options"></div>
+  <p style="margin-top:22px"><button class="pill" id="b-download">Download results file</button></p>
+  <p id="send-status"></p>
   <p class="label" style="margin-top:28px" id="done-meta"></p>
 </div></section>
 
@@ -257,8 +259,16 @@ async function calibrate() {
 }
 
 // ---------------------------------------------------------------- trials
-async function showImage(src) {
-  const img = $("ad"); img.src = src; await img.decode(); img.style.display = "block"; return img;
+function showImage(src) {
+  // load/error events with a timeout: decode() can hang in throttled tabs, and one bad URL must not stall a study
+  const img = $("ad");
+  return new Promise((resolve, reject) => {
+    const done = (ok) => { clearTimeout(timer); img.onload = img.onerror = null; ok ? (img.style.display = "block", resolve(img)) : reject(new Error(`could not load ${src}`)); };
+    const timer = setTimeout(() => done(false), 10000);
+    img.onload = () => done(true); img.onerror = () => done(false);
+    img.src = src;
+    if (img.complete && img.naturalWidth) done(true);
+  });
 }
 
 async function runTrials() {
@@ -268,7 +278,9 @@ async function runTrials() {
   for (const [n, ad] of ads.entries()) {
     $("progress").style.width = `${(n / ads.length) * 85}%`;
     $("cross").hidden = false; await sleep(800); $("cross").hidden = true;
-    const img = await showImage(ad.src), gaze = [], t0 = performance.now();
+    let img;
+    try { img = await showImage(ad.src); } catch (e) { result.trials.push({ ad: ad.id, src: ad.src, error: e.message }); continue; }
+    const gaze = [], t0 = performance.now();
     while (performance.now() - t0 < study.view_ms) {
       const f = currentFeature(), r = img.getBoundingClientRect();
       if (f) {
@@ -297,7 +309,8 @@ async function runRecognition() {
   const items = shuffle([...study.ads.map((a) => ({ ...a, old: true })), ...study.foils.map((a) => ({ ...a, old: false }))]);
   for (const it of items) {
     $("cross").hidden = false; await sleep(500); $("cross").hidden = true;
-    const img = await showImage(it.src);
+    let img;
+    try { img = await showImage(it.src); } catch (e) { continue; }
     $("word-q").textContent = ""; $("word-w").textContent = ""; $("word").hidden = false; $("word").style.top = "92%";
     const { key, rt } = await keyPress(["f", "j"]);
     result.recognition.push({ ad: it.id, old: it.old, said_seen: key === "j", rt });
@@ -311,6 +324,29 @@ function finish() {
   $("progress").style.width = "100%";
   result.finished = new Date().toISOString();
   $("done-meta").textContent = `participant ${result.participant} · ${result.trials.length} ads`;
+  // how results go back is the study owner's choice (study.json); nothing is sent without a click here
+  const opts = $("send-options"), file = `mediaattention-${result.participant}.json`;
+  if (study.submit_endpoint) {
+    const b = Object.assign(document.createElement("button"), { className: "pill solid", textContent: "Send results to the researcher" });
+    b.onclick = async () => {
+      b.disabled = true; $("send-status").textContent = "Sending…";
+      try {
+        // text/plain avoids a CORS preflight, so simple endpoints like Google Apps Script accept it
+        const r = await fetch(study.submit_endpoint, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(result) });
+        if (!r.ok && r.type !== "opaque") throw new Error(r.status);
+        $("send-status").textContent = "Sent. Thank you! You can close this tab.";
+      } catch (e) {
+        b.disabled = false; $("send-status").innerHTML = `<span class="err">Couldn't send (${e.message}). Please download the file instead and send it by hand.</span>`;
+      }
+    };
+    opts.append(b);
+  }
+  if (study.upload_url) opts.insertAdjacentHTML("beforeend", `<p>Download the file below, then <a href="${encodeURI(study.upload_url)}" target="_blank" rel="noopener" style="color:var(--paper)">upload it here</a>.</p>`);
+  if (study.send_to) {
+    const mail = `mailto:${encodeURIComponent(study.send_to)}?subject=${encodeURIComponent(`${study.name}: results ${result.participant}`)}&body=${encodeURIComponent(`My results file (${file}) is attached.`)}`;
+    opts.insertAdjacentHTML("beforeend", `<p>Download the file below, then <a href="${mail}" style="color:var(--paper)">email it to ${study.send_to.replace(/</g, "&lt;")}</a> as an attachment.</p>`);
+  }
+  if (!opts.children.length) opts.innerHTML = "<p>Download the file below and send it to the person who shared this study.</p>";
   show("s-done");
 }
 

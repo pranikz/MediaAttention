@@ -1,20 +1,53 @@
 {
   "name": "Which ad works?",
   "view_ms": 5000,
+  "send_to": "you@example.com",
+  "upload_url": "https://www.dropbox.com/request/your-file-request-id",
+  "submit_endpoint": "",
   "ads": [
-    { "id": "nova", "src": "../img/ad.jpg" },
-    { "id": "summer", "src": "../img/vid-7.jpg" }
+    {
+      "id": "nova",
+      "src": "../img/ad.jpg"
+    },
+    {
+      "id": "summer",
+      "src": "../img/vid-7.jpg"
+    }
   ],
   "foils": [
-    { "id": "foil-1", "src": "../img/vid-1.jpg" }
+    {
+      "id": "foil-1",
+      "src": "../img/vid-1.jpg"
+    }
   ],
   "words": [
-    { "word": "Engaging", "scale": "engagement" },
-    { "word": "Interesting", "scale": "engagement" },
-    { "word": "Trustworthy", "scale": "trust" },
-    { "word": "Honest", "scale": "trust" },
-    { "word": "Boring", "scale": "avoidance" },
-    { "word": "Annoying", "scale": "avoidance" },
-    { "word": "Want it", "scale": "intent" }
+    {
+      "word": "Engaging",
+      "scale": "engagement"
+    },
+    {
+      "word": "Interesting",
+      "scale": "engagement"
+    },
+    {
+      "word": "Trustworthy",
+      "scale": "trust"
+    },
+    {
+      "word": "Honest",
+      "scale": "trust"
+    },
+    {
+      "word": "Boring",
+      "scale": "avoidance"
+    },
+    {
+      "word": "Annoying",
+      "scale": "avoidance"
+    },
+    {
+      "word": "Want it",
+      "scale": "intent"
+    }
   ]
 }

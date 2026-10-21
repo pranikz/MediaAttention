@@ -80,11 +80,13 @@ def import_results(paths, out):
         n_fix = 0
         if ok:
             for t in r["trials"]:
+                if "gaze" not in t:  # the ad failed to load for this participant
+                    continue
                 srcs[t["ad"]] = t["src"]
                 for x, y, t_ms, dur in fixations(t["gaze"]):
                     fix_rows.append({"participant": r["participant"], "ad": t["ad"], "x": x, "y": y, "t_ms": t_ms, "dur_ms": dur})
                     n_fix += 1
-            answers[r["participant"]] = [(t["ad"], a["scale"], a["yes"], a["rt"]) for t in r["trials"] for a in t["answers"]]
+            answers[r["participant"]] = [(t["ad"], a["scale"], a["yes"], a["rt"]) for t in r["trials"] for a in t.get("answers", [])]
             for item in r.get("recognition", []):
                 recog[item["ad"]].append((item["old"], item["said_seen"]))
         quality.append({"participant": r["participant"], "calibration_error": err, "kept": ok, "fixations": n_fix,

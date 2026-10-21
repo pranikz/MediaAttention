@@ -153,7 +153,15 @@ Every commercial attention tool rests on a private panel. MediaAttention ships t
    - calibration accuracy and screen size.
 
    No name, email or IP address is recorded; the ID is a random 8-character code.
-3. **Back to you:** the participant decides whether to send that file to you (email, Slack, Drive…). You keep the files in a folder on your machine and run `mediaattention collect` locally.
+3. **Back to you:** the participant decides whether to send the file back. You choose how, in `study.json`:
+
+   | Option | Participant sees | You need |
+   |---|---|---|
+   | `"upload_url"` | "Upload it here" | a Dropbox or Google Drive *file request* link (they upload without an account) |
+   | `"send_to"` | "Email it to you@…", subject pre-filled | an email address |
+   | `"submit_endpoint"` | a **Send results** button that posts the file directly, only when clicked | an endpoint you own. [`apps-script.gs`](docs/collect/apps-script.gs) is a ready-made Google Apps Script that saves each submission to your Google Drive |
+
+   With none set, participants are asked to send the file by hand. Either way, you run `mediaattention collect` on the files locally.
 
 GitHub Pages only serves the static study page; nothing flows back to it. If you want automatic collection (e.g. to a Google Sheet or your own server), add it yourself and treat it as personal data under your privacy obligations.
 
