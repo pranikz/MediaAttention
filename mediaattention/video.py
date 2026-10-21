@@ -6,7 +6,7 @@ import numpy as np
 
 from . import memory as _memory
 from .metrics import DEFAULT_RANGES, aoi_stats, cognitive_demand, focus, impact_score
-from .saliency import predict
+from .saliency import UnisalVideo, predict, resolve
 
 VIDEO_EXT = {".mp4", ".mov", ".webm", ".mkv", ".avi", ".m4v"}
 CUT = 0.4  # histogram change (0-1) between consecutive frames that counts as a hard cut
@@ -16,18 +16,19 @@ MIN_SHOT = 0.5  # seconds; ignores flashes and encoder flicker right after a cut
 TRACK_W = 320  # width of the grayscale frames used for cut detection and AOI tracking
 
 
-def frames(path, fps=2.0):
-    """Yields (t, PIL image, cut, grays) sampled at `fps`.
+def frames(path, fps=2.0, clip_fps=None):
+    """Yields (t, PIL image, cut, grays, clip) sampled at `fps`.
 
     cut = time of a hard cut since the previous sample, else None. grays = every decoded frame since the
     previous sample (inclusive) as small grayscale arrays, for tracking. Cuts are checked on every frame.
+    clip = RGB frames since the previous sample at ~clip_fps, ending with this sample (empty if not asked).
     """
     import av
     with av.open(str(path)) as c:
         s = c.streams.video[0]
         s.thread_type = "AUTO"
         size = (TRACK_W, max(2, round(TRACK_W * s.height / s.width) // 2 * 2))
-        next_t, prev, cut, last_cut, grays = None, None, None, -MIN_SHOT, []
+        next_t, prev, cut, last_cut, grays, clip, next_c = None, None, None, -MIN_SHOT, [], [], 0.0
         for f in c.decode(s):
             t = float(f.time or 0)
             gray = f.reformat(width=size[0], height=size[1], format="gray").to_ndarray()
@@ -36,9 +37,14 @@ def frames(path, fps=2.0):
                 cut = last_cut = t
             prev = hist
             grays.append(gray)
-            if next_t is None or t + 1e-6 >= next_t:
-                yield t, f.to_image(), cut, grays
-                cut, next_t, grays = None, (next_t or t) + 1 / fps, [gray]
+            sample = next_t is None or t + 1e-6 >= next_t
+            if clip_fps and (sample or t + 1e-6 >= next_c):
+                clip.append(f.to_image())
+                next_c = t + 1 / clip_fps
+            if sample:
+                img = clip[-1] if clip_fps else f.to_image()
+                yield t, img, cut, grays, clip
+                cut, next_t, grays, clip = None, (next_t or t) + 1 / fps, [gray], []
 
 
 def track_boxes(aois, grays):
@@ -94,21 +100,31 @@ class _Mp4:
         self.out.close()
 
 
-def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.0, window=1.0, heat_mp4=None):
+def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.0, window=1.0, heat_mp4=None,
+                per_frame=False):
     """aois: None, a static list for every frame, or "auto" (detected at each shot start, then tracked).
 
-    Heatmaps are averaged over the last `window` seconds, so attention lingers briefly after a cut
-    instead of jumping instantly, as eye-tracking shows. Returns a report dict; writes `heat_mp4` if given.
+    With UNISAL (the default) attention comes from its recurrent video mode, fed at ~6 fps, so it carries
+    over between frames as in real viewing. Image models (or per_frame=True) score each sampled frame
+    and average heatmaps over the last `window` seconds instead. Returns a report dict; writes
+    `heat_mp4` if given.
     """
+    model = resolve(model)
+    temporal = model == "unisal" and not per_frame
     from .render import aoi_overlay, heat_overlay
     recent, rows, writer, used = deque(), [], _Mp4(heat_mp4, fps) if heat_mp4 else None, model
     shot_aois = None if aois == "auto" else (aois or [])
     with_memory = _memory.available()
     try:
-        for t, img, cut, grays in frames(path, fps):
-            heat, used = predict(img, model)
+        video_model = None
+        for t, img, cut, grays, clip in frames(path, fps, UnisalVideo.FPS if temporal else None):
+            if temporal:
+                video_model = video_model or UnisalVideo(img.size)
+                heat, used = video_model(clip), "unisal-video"
+            else:
+                heat, used = predict(img, model)
             recent.append((t, heat))
-            while recent[0][0] < t - window + 1e-6 and len(recent) > 1:
+            while recent[0][0] < t - (0 if temporal else window) + 1e-6 and len(recent) > 1:
                 recent.popleft()
             smooth = np.mean([h for _, h in recent], 0)
             if aois == "auto" and (shot_aois is None or cut is not None):

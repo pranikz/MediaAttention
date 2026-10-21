@@ -36,6 +36,7 @@ def main(argv=None):
     ap.add_argument("--model", choices=["auto", "unisal", "deepgaze", "spectral"], default="auto")
     ap.add_argument("--benchmarks", help='JSON {"metric": [lo, hi]} recommended ranges')
     ap.add_argument("--fps", type=float, default=2.0, help="video: frames scored per second")
+    ap.add_argument("--per-frame", action="store_true", help="video: score frames independently instead of UNISAL's video mode")
     ap.add_argument("--out", default="mediaattention-out")
     a = ap.parse_args(argv)
 
@@ -44,7 +45,8 @@ def main(argv=None):
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    report, img, heat = score_path(a.media, aois, a.product, a.model, ranges, a.fps, heat_mp4=out / "heat.mp4")
+    report, img, heat = score_path(a.media, aois, a.product, a.model, ranges, a.fps, heat_mp4=out / "heat.mp4",
+                                   per_frame=a.per_frame)
     if img is None:  # video
         (out / "scores.json").write_text(json.dumps(report, indent=2))
         print(json.dumps({k: v for k, v in report.items() if k != "timeline"}, indent=2))

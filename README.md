@@ -88,6 +88,7 @@ mediaattention ad.mp4 --aoi auto --product "a running shoe" --fps 2 --out report
 
 This writes `report/heat.mp4` (the heatmap and AOIs on every scored frame) and `report/scores.json`. The JSON has a summary plus a per-frame `timeline`:
 
+- Attention comes from UNISAL's **video mode**: a recurrent model fed ~6 frames per second, so attention carries over from frame to frame as in real viewing. `--per-frame` scores frames independently instead (any `--model`), averaged over the last second.
 - `cuts`: hard scene cuts in seconds. Key messages placed right after a cut are easily forgotten.
 - `focus_start` / `focus_end`: Focus over the first and last 2 seconds.
 - Per AOI: `total_attention` (share over the whole video), `relative_attention` (share while on screen) and `availability_s` (seconds on screen).
@@ -112,7 +113,7 @@ heat, report = score(Image.open("ad.png"))  # model="unisal" by default; "deepga
 | Memory | ResMem (Needell & Bainbridge 2022), trained on LaMem/MemCat recognition data. It predicts the share of people who recognise an image when it repeats in a rapid stream, the same game Neurons' memory model is built on. Scores cluster high (a plain grey image gets ~81, ads ~90–98), so compare within a `bench` corpus rather than reading absolute values. Videos are scored per frame, without audio. |
 | AOI detection | OCR (RapidOCR) reads every text line. A short line on a solid colour patch is the CTA, and the box grows out to the button's edges. The largest text is the headline, and the rest is body. Logo and product come from OWLv2 zero-shot detection (`--product` says what to look for). If OWLv2 is unsure about the logo, a short text line in the top or bottom band is used instead. |
 | AOI attention % | Sum of heatmap mass inside the box. |
-| Video | Frames are sampled at `--fps`. Each heatmap is averaged over the last second, so attention lingers briefly after a cut, as eye-tracking shows. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. Auto AOIs are detected at the start of each shot, then tracked through every frame with Lucas–Kanade optical flow. Each box gets its own shift and zoom, so camera moves and moving objects are both followed. AOIs from a JSON file stay fixed for the whole video. |
+| Video | Frames are sampled at `--fps` for scoring. With UNISAL, attention comes from its recurrent video mode (DHF1K weights), fed at ~6 fps with its state carried across the whole video. With `--per-frame` or an image model, each sampled frame is scored on its own and heatmaps are averaged over the last second, so attention lingers briefly after a cut. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. Auto AOIs are detected at the start of each shot, then tracked through every frame with Lucas–Kanade optical flow. Each box gets its own shift and zoom, so camera moves and moving objects are both followed. AOIs from a JSON file stay fixed for the whole video. |
 | Impact Score | 10 inside the recommended range; outside, it falls linearly from 7 at the edge to 1 at the end of the scale. The final score is the mean over available metrics, and missing AOIs are skipped. |
 
 ## Benchmark
@@ -147,9 +148,10 @@ The full write-up, including a review of 15 commercial tools and what their accu
 
 ## Honest limitations
 
-- The attention model is trained on public natural-image eye-tracking data (SALICON, MIT1003), not ads. Expect it to be weaker on text-heavy creatives than an ad-specific model.
+- The attention model is trained on public natural-image eye-tracking data (SALICON; DHF1K for video), not ads. Expect it to be weaker on text-heavy creatives than an ad-specific model.
 - **The default recommended ranges are placeholders.** Run `bench` on your own ads to calibrate them. `bench` ranks assets by the metric itself, not by real results; once you have campaign KPIs (CTR, recall), rank by those instead.
 - AOI detection relies on layout rules. Ads that break them (a headline smaller than the body text, an outlined ghost button, a logo in the middle of the ad) need `--aoi aois.json`.
+- **Video mode is not yet validated on ad video.** Published results on TV ads favour video models over frame-by-frame prediction (CC 0.56 vs 0.23, Ye & Wedel 2026), but UNISAL's video mode hasn't been benchmarked on ad eye tracking here. Use `--per-frame` to compare. Video has no audio model.
 - No emotion, engagement or trust scores yet. These need human response data, which nobody has released openly so far (see the roadmap).
 
 ## Roadmap

@@ -154,3 +154,19 @@ def test_unisal_input_size():
     from mediaattention.saliency import _unisal_size
     assert _unisal_size(768, 1360) == (256, 416)  # 8x13 cells, UNISAL's closest grid to 16:9
     assert _unisal_size(1000, 1000) == (320, 320)
+
+
+def test_video_clip_frames_end_with_the_sample(tmp_path):
+    av = pytest.importorskip("av")
+    from mediaattention.video import frames
+    path = tmp_path / "grey.mp4"
+    with av.open(str(path), "w") as out:
+        s = out.add_stream("mpeg4", rate=30)
+        s.width, s.height, s.pix_fmt = 64, 64, "yuv420p"
+        for i in range(60):  # 2 s
+            out.mux(s.encode(av.VideoFrame.from_ndarray(np.full((64, 64, 3), 4 * i, np.uint8), format="rgb24")))
+        out.mux(s.encode())
+    got = list(frames(path, fps=2, clip_fps=6))
+    assert len(got) == 4  # samples at 0, 0.5, 1.0, 1.5 s
+    for t, img, cut, grays, clip in got[1:]:
+        assert 2 <= len(clip) <= 4 and clip[-1] is img  # ~6 fps between samples, ending on the sample

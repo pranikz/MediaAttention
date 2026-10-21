@@ -304,10 +304,8 @@ class ConvGRUCell(nn.Module):
     def _init_hidden(self, input_, cuda=True):
         """Initialize the hidden state"""
         batch_size, _, height, width = input_.data.size()
-        prev_state = torch.zeros(batch_size, self.hidden_ch, height, width)
-        if cuda:
-            prev_state = prev_state.cuda()
-        return prev_state
+        # vendored: created on the input's device (the original moved it to CUDA only, which breaks MPS/CPU)
+        return torch.zeros(batch_size, self.hidden_ch, height, width, device=input_.device, dtype=input_.dtype)
 
 
 class ConvGRU(nn.Module):
