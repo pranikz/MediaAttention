@@ -13,26 +13,62 @@ CUT = 0.4  # histogram change (0-1) between consecutive frames that counts as a 
 MIN_SHOT = 0.5  # seconds; ignores flashes and encoder flicker right after a cut
 
 
-def frames(path, fps=2.0):
-    """Yields (t, PIL image, cut) sampled at `fps`. cut = time of a hard cut since the previous sample, else None.
+TRACK_W = 320  # width of the grayscale frames used for cut detection and AOI tracking
 
-    Cuts are checked on every decoded frame (on tiny grayscale thumbnails), not just the sampled ones.
+
+def frames(path, fps=2.0):
+    """Yields (t, PIL image, cut, grays) sampled at `fps`.
+
+    cut = time of a hard cut since the previous sample, else None. grays = every decoded frame since the
+    previous sample (inclusive) as small grayscale arrays, for tracking. Cuts are checked on every frame.
     """
     import av
     with av.open(str(path)) as c:
         s = c.streams.video[0]
         s.thread_type = "AUTO"
-        next_t, prev, cut, last_cut = None, None, None, -MIN_SHOT
+        size = (TRACK_W, max(2, round(TRACK_W * s.height / s.width) // 2 * 2))
+        next_t, prev, cut, last_cut, grays = None, None, None, -MIN_SHOT, []
         for f in c.decode(s):
             t = float(f.time or 0)
-            hist = np.bincount(f.reformat(width=64, height=36, format="gray").to_ndarray().ravel() // 8, minlength=32)
-            hist = hist / hist.sum()
+            gray = f.reformat(width=size[0], height=size[1], format="gray").to_ndarray()
+            hist = np.bincount(gray.ravel() // 8, minlength=32) / gray.size
             if prev is not None and np.abs(hist - prev).sum() / 2 > CUT and t - last_cut >= MIN_SHOT:
                 cut = last_cut = t
             prev = hist
+            grays.append(gray)
             if next_t is None or t + 1e-6 >= next_t:
-                yield t, f.to_image(), cut
-                cut, next_t = None, (next_t or t) + 1 / fps
+                yield t, f.to_image(), cut, grays
+                cut, next_t, grays = None, (next_t or t) + 1 / fps, [gray]
+
+
+def track_boxes(aois, grays):
+    """Moves AOIs (0-1 boxes) through consecutive grayscale frames with Lucas-Kanade optical flow.
+
+    Each box gets its own shift + uniform scale (camera zooms/pans and objects moving on their own).
+    A box with too few trackable corners stays put; boxes that leave the frame are dropped.
+    """
+    import cv2
+    H, W = grays[0].shape
+    boxes = [[a["box"][0] * W, a["box"][1] * H, a["box"][2] * W, a["box"][3] * H] for a in aois]
+    for prev, cur in zip(grays, grays[1:]):
+        for i, (x0, y0, x1, y1) in enumerate(boxes):
+            mask = np.zeros_like(prev)
+            mask[max(0, int(y0)):int(y1), max(0, int(x0)):int(x1)] = 255
+            pts = cv2.goodFeaturesToTrack(prev, 40, 0.01, 3, mask=mask)
+            if pts is None or len(pts) < 4:
+                continue
+            nxt, ok, _ = cv2.calcOpticalFlowPyrLK(prev, cur, pts, None)
+            ok = ok.ravel() == 1
+            m = cv2.estimateAffinePartial2D(pts[ok], nxt[ok])[0] if ok.sum() >= 4 else None
+            if m is not None:
+                c = np.array([[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) @ m[:, :2].T + m[:, 2]
+                boxes[i] = [c[:, 0].min(), c[:, 1].min(), c[:, 0].max(), c[:, 1].max()]
+    out = []
+    for a, (x0, y0, x1, y1) in zip(aois, boxes):
+        box = [max(0, x0 / W), max(0, y0 / H), min(1, x1 / W), min(1, y1 / H)]
+        if box[2] - box[0] > 0.01 and box[3] - box[1] > 0.01:
+            out.append({**a, "box": box})
+    return out
 
 
 class _Mp4:
@@ -59,7 +95,7 @@ class _Mp4:
 
 
 def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.0, window=1.0, heat_mp4=None):
-    """aois: None, a static list for every frame, or "auto" (re-detected at the start and after each cut).
+    """aois: None, a static list for every frame, or "auto" (detected at each shot start, then tracked).
 
     Heatmaps are averaged over the last `window` seconds, so attention lingers briefly after a cut
     instead of jumping instantly, as eye-tracking shows. Returns a report dict; writes `heat_mp4` if given.
@@ -69,7 +105,7 @@ def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.
     shot_aois = None if aois == "auto" else (aois or [])
     with_memory = _memory.available()
     try:
-        for t, img, cut in frames(path, fps):
+        for t, img, cut, grays in frames(path, fps):
             heat, used = predict(img, model)
             recent.append((t, heat))
             while recent[0][0] < t - window + 1e-6 and len(recent) > 1:
@@ -77,7 +113,9 @@ def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.
             smooth = np.mean([h for _, h in recent], 0)
             if aois == "auto" and (shot_aois is None or cut is not None):
                 from .detect import detect
-                shot_aois = detect(img, product=product)  # ponytail: per shot, so moving objects drift
+                shot_aois = detect(img, product=product)  # once per shot, then tracked
+            elif aois == "auto" and shot_aois:
+                shot_aois = track_boxes(shot_aois, grays)
             stats = aoi_stats(smooth, shot_aois)
             rows.append({"t": round(t, 2), "cut": None if cut is None else round(cut, 2), "focus": round(focus(smooth), 1),
                          "cognitive_demand": round(cognitive_demand(np.asarray(img.convert("L"))), 1),

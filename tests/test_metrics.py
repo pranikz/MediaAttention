@@ -93,3 +93,25 @@ def test_memory_score():
     from mediaattention.memory import memory
     m = memory(Image.fromarray(np.random.default_rng(0).integers(0, 256, (240, 320, 3), dtype=np.uint8)))
     assert 0 <= m <= 100
+
+
+def test_track_boxes_follows_pan_and_zoom():
+    pytest.importorskip("cv2")
+    from mediaattention.video import track_boxes
+    from PIL import Image as I
+    patch = np.random.default_rng(1).integers(0, 256, (40, 40), dtype=np.uint8)
+    base = np.full((180, 320), 128, np.uint8)
+    base[70:110, 60:100] = patch
+    # pan: the textured patch moves 4 px right per frame for 10 frames
+    pan = [np.roll(base, 4 * i, axis=1) for i in range(11)]
+    [a] = track_boxes([{"label": "x", "box": [60 / 320, 70 / 180, 100 / 320, 110 / 180]}], pan)
+    assert abs(a["box"][0] * 320 - 100) < 3 and abs(a["box"][2] * 320 - 140) < 3
+    # zoom: the frame scales up 2% per frame around its centre for 10 frames (~1.22x)
+    zoom = []
+    for i in range(11):
+        z = 1.02 ** i
+        w, h = 320 / z, 180 / z
+        zoom.append(np.asarray(I.fromarray(base).crop(((320 - w) / 2, (180 - h) / 2, (320 + w) / 2, (180 + h) / 2)).resize((320, 180))))
+    [a] = track_boxes([{"label": "x", "box": [60 / 320, 70 / 180, 100 / 320, 110 / 180]}], zoom)
+    width = (a["box"][2] - a["box"][0]) * 320
+    assert abs(width - 40 * 1.02 ** 10) < 4

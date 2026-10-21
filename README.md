@@ -90,7 +90,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 | Memory | ResMem (Needell & Bainbridge 2022), trained on LaMem/MemCat recognition data. It predicts the share of people who recognise an image when it repeats in a rapid stream, the same game Neurons' memory model is built on. Scores cluster high (a plain grey image gets ~81, ads ~90–98), so compare within a `bench` corpus rather than reading absolute values. Videos are scored per frame, without audio. |
 | AOI detection | OCR (RapidOCR) reads every text line. A short line on a solid colour patch is the CTA, and the box grows out to the button's edges. The largest text is the headline, and the rest is body. Logo and product come from OWLv2 zero-shot detection (`--product` says what to look for). If OWLv2 is unsure about the logo, a short text line in the top or bottom band is used instead. |
 | AOI attention % | Sum of heatmap mass inside the box. |
-| Video | Frames are sampled at `--fps`. Each heatmap is averaged over the last second, so attention lingers briefly after a cut, as eye-tracking shows. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. AOIs are detected at the start and after each cut; static AOIs from a JSON file apply to every frame. |
+| Video | Frames are sampled at `--fps`. Each heatmap is averaged over the last second, so attention lingers briefly after a cut, as eye-tracking shows. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. Auto AOIs are detected at the start of each shot, then tracked through every frame with Lucas–Kanade optical flow. Each box gets its own shift and zoom, so camera moves and moving objects are both followed. AOIs from a JSON file stay fixed for the whole video. |
 | Impact Score | 10 inside the recommended range; outside, it falls linearly from 7 at the edge to 1 at the end of the scale. The final score is the mean over available metrics, and missing AOIs are skipped. |
 
 ## Honest limitations
@@ -103,7 +103,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 ## Roadmap
 
 - [x] Video: per-frame scoring, first/last-2s windows, scene-cut detection
-- [ ] Video: track AOIs within a shot (they're currently fixed per shot, so they drift on zooms and pans)
+- [x] Video: track AOIs within a shot
 - [x] `mediaattention bench <folder>`: build recommended ranges from your own corpus
 - [ ] `bench` ranked by real KPIs (CTR, recall) when you have them
 - [x] Memory score (ResMem)
@@ -116,7 +116,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 The code is Apache-2.0. Model weights are downloaded at runtime and keep their own terms:
 
 - DeepGaze IIE code is MIT; its weights are trained on SALICON/MIT1003.
-- OWLv2 and RapidOCR are Apache-2.0. PyAV is BSD-3-Clause.
+- OWLv2, RapidOCR and OpenCV are Apache-2.0. PyAV is BSD-3-Clause.
 - **ResMem is non-commercial only** (University of Chicago license). Research use, including inside a company, is fine. Using it in a commercial product needs permission from the Brain Bridge Lab. It's an optional extra, so nothing else depends on it.
 
 Check the dataset terms before any commercial use.
