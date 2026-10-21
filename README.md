@@ -1,5 +1,7 @@
 # MediaAttention
 
+[![PyPI](https://img.shields.io/pypi/v/mediaattention)](https://pypi.org/project/mediaattention/) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23540409.svg)](https://doi.org/10.5281/zenodo.23540409)
+
 **Site:** https://pranikz.github.io/MediaAttention/ · **Model on Hugging Face:** https://huggingface.co/pranikz/MediaAttention · **Research report (PDF):** [docs/research/MediaAttention-report.pdf](docs/research/MediaAttention-report.pdf)
 
 Open-source predicted attention for ads and media. Give it an image or video creative and it predicts where people will look, then scores it:
