@@ -33,19 +33,29 @@ def ranges_from(metrics, min_n=5):
     return out
 
 
-def bench(folder, out, aois=None, product=None, model="auto", fps=2.0, min_n=5):
-    """Scores every image/video under `folder`, writes out/assets.jsonl and out/benchmarks.json."""
-    files = sorted(p for p in Path(folder).rglob("*") if p.suffix.lower() in IMAGE_EXT | VIDEO_EXT)
+def bench(folder, out, **kw):
+    """Scores every image/video under `folder`. See bench_files."""
+    return bench_files(sorted(Path(folder).rglob("*")), out, **kw)
+
+
+def bench_files(files, out, aois=None, product=None, model="auto", fps=2.0, min_n=5, on_file=None):
+    """Scores the image/video files among `files` (others are ignored), writes out/assets.jsonl and
+    out/benchmarks.json. on_file(i, total, path) is called before each one. Returns (ranges, scored, skipped).
+    """
+    files = [Path(p) for p in files if Path(p).suffix.lower() in IMAGE_EXT | VIDEO_EXT]
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    rows = []
+    rows, skipped = [], []
     with open(out / "assets.jsonl", "w") as f:
         for i, p in enumerate(files, 1):
             print(f"[{i}/{len(files)}] {p}", file=sys.stderr)
+            if on_file:
+                on_file(i, len(files), p)
             try:
                 report, _, _ = score_path(p, aois, product, model, None, fps)
             except Exception as e:  # one broken file shouldn't sink the corpus
                 print(f"  skipped: {e}", file=sys.stderr)
+                skipped.append(p.name)
                 continue
             rows.append(report["metrics"])
             f.write(json.dumps({"file": str(p), "metrics": report["metrics"]}) + "\n")
@@ -53,4 +63,4 @@ def bench(folder, out, aois=None, product=None, model="auto", fps=2.0, min_n=5):
     (out / "benchmarks.json").write_text(json.dumps(ranges, indent=2))
     if len(rows) < 30:
         print(f"warning: only {len(rows)} assets scored; ranges get stable around 30+ per category", file=sys.stderr)
-    return ranges, len(rows)
+    return ranges, len(rows), skipped

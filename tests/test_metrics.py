@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 from PIL import Image
@@ -127,3 +130,21 @@ def test_ui_analyse(tmp_path):
     out = analyse(str(tmp_path / "ad.png"), False, "", "spectral", 2, None)
     assert out[0].startswith("## Impact score") and len(out) == 9
     assert "Focus" in [row[0] for row in out[1].value["data"]]
+
+
+def test_ui_calibrate(tmp_path):
+    pytest.importorskip("gradio")
+    from mediaattention.ui import calibrate
+    rng = np.random.default_rng(0)
+    files = []
+    for i in range(6):
+        a = np.full((120, 160, 3), 230, np.uint8)
+        y, x = rng.integers(0, 80), rng.integers(0, 120)
+        a[y:y + 30, x:x + 30] = 20
+        Image.fromarray(a).save(tmp_path / f"ad{i}.png")
+        files.append(str(tmp_path / f"ad{i}.png"))
+    (tmp_path / "notes.txt").write_text("ignored")
+    md, table, download, bench_json = calibrate(files + [str(tmp_path / "notes.txt")], False, "", "spectral", 2, 5)
+    assert md.startswith("### 6 assets scored")
+    assert "Focus" in [row[0] for row in table.value["data"]]
+    assert "focus" in json.loads(Path(bench_json).read_text())

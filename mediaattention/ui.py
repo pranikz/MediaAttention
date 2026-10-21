@@ -75,11 +75,36 @@ def analyse(path, auto_aoi, product, model, fps, bench_file):
     )
 
 
+def calibrate(files, auto_aoi, product, model, fps, min_n, progress=None):
+    """Gradio handler for the Calibrate tab: bench the uploaded files, hand benchmarks.json to the Analyse tab."""
+    import gradio as gr
+    import pandas as pd
+    from .bench import TWO_SIDED, bench_files
+    if not files:
+        raise gr.Error("Upload some ads first: select several files, or a whole folder.")
+    out = Path(tempfile.mkdtemp(prefix="mediaattention-bench-"))
+    step = (lambda i, n, p: progress((i - 1) / n, desc=f"Scoring {Path(p).name} ({i}/{n})")) if progress else None
+    ranges, n, skipped = bench_files(sorted(files), out, "auto" if auto_aoi else None, product or None, model, fps,
+                                     int(min_n), on_file=step)
+    if not n:
+        raise gr.Error("None of the files could be scored. Are they images or videos?")
+    md = f"### {n} assets scored"
+    if skipped:
+        md += f"\nSkipped (unreadable): {', '.join(skipped)}"
+    if n < 30:
+        md += f"\n\n**Only {n} assets.** Ranges get stable around 30+ per category."
+    md += "\n\nThese targets are now loaded in the **Analyse** tab."
+    table = pd.DataFrame([{"Metric": _label(k), "Target": f"{lo}–{hi}", "Rule": "middle 50%" if k in TWO_SIDED else "top 20%"}
+                          for k, (lo, hi) in ranges.items()])
+    bench_json = str(out / "benchmarks.json")
+    return md, gr.Dataframe(table, visible=True), gr.File(bench_json, visible=True), bench_json
+
+
 def build():
     import gradio as gr
     with gr.Blocks(title="MediaAttention") as demo:
         gr.Markdown("# MediaAttention\nPredict where people look in an ad, then score it. Runs locally; nothing is uploaded anywhere.")
-        with gr.Row():
+        with gr.Tab("Analyse"), gr.Row():
             with gr.Column(scale=1):
                 media = gr.File(label="Image or video", file_types=["image", "video"], type="filepath")
                 auto_aoi = gr.Checkbox(value=True, label="Detect AOIs (brand, product, headline, body, CTA)")
@@ -103,7 +128,28 @@ def build():
                 timeline = gr.LinePlot(x="seconds", y="score", color="metric", label="Timeline", visible=False)
                 download = gr.File(label="scores.json", visible=False)
         run.click(analyse, [media, auto_aoi, product, model, fps, bench_file],
-                  [verdict, metrics, aoi_table, heat, fog, aois, heat_video, timeline, download])
+                  [verdict, metrics, aoi_table, heat, fog, aois, heat_video, timeline, download], api_name="analyse")
+
+        with gr.Tab("Calibrate"), gr.Row():
+            with gr.Column(scale=1):
+                gr.Markdown("Upload a batch of ads from one category (industry or use case). Their scores set the "
+                            "target ranges the Impact Score is measured against.")
+                corpus = gr.File(label="Ads (select many files)", file_count="multiple", type="filepath",
+                                 file_types=["image", "video"])
+                c_aoi = gr.Checkbox(value=True, label="Detect AOIs (gives brand, product and CTA targets too)")
+                c_product = gr.Textbox(label="Product", placeholder="e.g. a running shoe")
+                with gr.Accordion("Options", open=False):
+                    c_model = gr.Dropdown(["auto", "deepgaze", "spectral"], value="auto", label="Attention model")
+                    c_fps = gr.Slider(0.5, 10, value=2, step=0.5, label="Video: frames scored per second")
+                    c_min_n = gr.Number(value=5, precision=0, label="Skip metrics seen in fewer assets than")
+                c_run = gr.Button("Build targets", variant="primary")
+            with gr.Column(scale=2):
+                c_summary = gr.Markdown()
+                c_table = gr.Dataframe(label="Target ranges", interactive=False, visible=False)
+                c_download = gr.File(label="benchmarks.json", visible=False)
+        c_run.click(lambda *a, progress=gr.Progress(): calibrate(*a, progress=progress),
+                    [corpus, c_aoi, c_product, c_model, c_fps, c_min_n],
+                    [c_summary, c_table, c_download, bench_file], api_name="calibrate")
     return demo
 
 

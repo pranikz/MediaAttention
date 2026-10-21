@@ -18,8 +18,8 @@ def bench_main(argv):
     ap.add_argument("--out", default="mediaattention-bench")
     a = ap.parse_args(argv)
     from .bench import bench
-    ranges, n = bench(a.folder, a.out, a.aoi, a.product, a.model, a.fps, a.min_n)
-    print(json.dumps({"assets": n, "ranges": ranges}, indent=2))
+    ranges, n, skipped = bench(a.folder, a.out, aois=a.aoi, product=a.product, model=a.model, fps=a.fps, min_n=a.min_n)
+    print(json.dumps({"assets": n, "skipped": skipped, "ranges": ranges}, indent=2))
 
 
 def main(argv=None):

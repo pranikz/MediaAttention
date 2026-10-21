@@ -40,7 +40,7 @@ Drop in an image or video (or click one of the built-in examples), optionally na
 - heatmap, fog map and AOI overlay for images; heatmap video and a Focus/Cognitive Demand/Memory timeline for videos
 - `scores.json` to download
 
-Upload a `benchmarks.json` from `bench` under *Options* to score against your own corpus. Everything runs on your machine. `--share` creates a temporary public link if you want to show someone.
+The **Calibrate** tab does `bench` in the browser: upload a batch of ads from one category (select many files) and it builds the target ranges, shows them, and loads them into the Analyse tab. You can also download that `benchmarks.json`, or upload one under *Options* in the Analyse tab. Everything runs on your machine. `--share` creates a temporary public link if you want to show someone.
 
 ### Command line
 
