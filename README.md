@@ -136,7 +136,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 
 The code is Apache-2.0. Model weights are downloaded at runtime and keep their own terms:
 
-- DeepGaze IIE code is MIT; its weights are trained on SALICON/MIT1003.
+- **DeepGaze IIE has no license file** in its repository, which by default means all rights reserved. It's an optional extra and is downloaded from the authors at runtime, never redistributed here. Ask the authors before commercial use. Its weights are trained on SALICON/MIT1003.
 - OWLv2, RapidOCR and OpenCV are Apache-2.0. PyAV is BSD-3-Clause.
 - **ResMem is non-commercial only** (University of Chicago license). Research use, including inside a company, is fine. Using it in a commercial product needs permission from the Brain Bridge Lab. It's an optional extra, so nothing else depends on it.
 
