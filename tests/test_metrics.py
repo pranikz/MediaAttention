@@ -86,3 +86,10 @@ def test_bench_ranges():
     assert r["cognitive_demand"] == [25.8, 75.2]  # middle 50%: moderate is best
     assert "rare" not in r  # too few assets to trust
     assert "body_attention" not in r
+
+
+def test_memory_score():
+    pytest.importorskip("resmem")
+    from mediaattention.memory import memory
+    m = memory(Image.fromarray(np.random.default_rng(0).integers(0, 256, (240, 320, 3), dtype=np.uint8)))
+    assert 0 <= m <= 100

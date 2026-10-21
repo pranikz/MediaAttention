@@ -31,6 +31,11 @@ def center_bias(shape, sigma=0.3):
     return (cb - logsumexp(cb)).astype(np.float32)
 
 
+def device():
+    import torch
+    return "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
+
 @cache
 def _deepgaze(device):
     import deepgaze_pytorch
@@ -38,16 +43,16 @@ def _deepgaze(device):
         return deepgaze_pytorch.DeepGazeIIE(pretrained=True).float().to(device).eval()  # MPS has no float64
 
 
-def deepgaze(img, device=None):
+def deepgaze(img, dev=None):
     """DeepGaze IIE (Linardos et al. 2021), weights fetched by deepgaze_pytorch on first use."""
     import torch
-    device = device or ("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+    dev = dev or device()
     s = min(1.0, 1024 / max(img.size))
     x = np.asarray(img.convert("RGB").resize((round(img.width * s), round(img.height * s))), dtype=np.float32)
     with torch.no_grad():
-        logd = _deepgaze(device)(
-            torch.tensor(x.transpose(2, 0, 1)[None], device=device),
-            torch.tensor(center_bias(x.shape[:2])[None], device=device),
+        logd = _deepgaze(dev)(
+            torch.tensor(x.transpose(2, 0, 1)[None], device=dev),
+            torch.tensor(center_bias(x.shape[:2])[None], device=dev),
         )
     return _resize(np.exp(logd.cpu().numpy()[0, 0]), img.size)
 

@@ -4,6 +4,7 @@ from fractions import Fraction
 
 import numpy as np
 
+from . import memory as _memory
 from .metrics import DEFAULT_RANGES, aoi_stats, cognitive_demand, focus, impact_score
 from .saliency import predict
 
@@ -66,6 +67,7 @@ def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.
     from .render import aoi_overlay, heat_overlay
     recent, rows, writer, used = deque(), [], _Mp4(heat_mp4, fps) if heat_mp4 else None, model
     shot_aois = None if aois == "auto" else (aois or [])
+    with_memory = _memory.available()
     try:
         for t, img, cut in frames(path, fps):
             heat, used = predict(img, model)
@@ -80,6 +82,8 @@ def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.
             rows.append({"t": round(t, 2), "cut": None if cut is None else round(cut, 2), "focus": round(focus(smooth), 1),
                          "cognitive_demand": round(cognitive_demand(np.asarray(img.convert("L"))), 1),
                          "aois": {a["label"]: a["attention_pct"] for a in stats}})
+            if with_memory:  # per frame, like Neurons: no audio or temporal context
+                rows[-1]["memory"] = _memory.memory(img)
             if writer:
                 writer.write(aoi_overlay(img, smooth, stats) if stats else heat_overlay(img, smooth))
     finally:
@@ -97,6 +101,10 @@ def _summarise(rows, fps, used, ranges):
                "focus_start": mean([r["focus"] for r in rows if r["t"] < 2]),
                "focus_end": mean([r["focus"] for r in rows if r["t"] > end - 2]),
                "cognitive_demand": mean([r["cognitive_demand"] for r in rows])}
+    if "memory" in rows[0]:
+        metrics.update(memory=mean([r["memory"] for r in rows]),
+                       memory_start=mean([r["memory"] for r in rows if r["t"] < 2]),
+                       memory_end=mean([r["memory"] for r in rows if r["t"] > end - 2]))
     aois = {}
     for label in dict.fromkeys(k for r in rows for k in r["aois"]):
         seen = [r["aois"][label] for r in rows if label in r["aois"]]

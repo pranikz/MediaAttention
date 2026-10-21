@@ -1,6 +1,7 @@
 """MediaAttention: open-source predicted attention and creative scoring."""
 import numpy as np
 
+from . import memory as _memory
 from .metrics import DEFAULT_RANGES, aoi_stats, cognitive_demand, focus, impact_score
 from .saliency import predict
 
@@ -12,6 +13,8 @@ def score(img, aois=None, model="auto", ranges=None):
     heat, used = predict(img, model)
     metrics = {"focus": round(focus(heat), 1),
                "cognitive_demand": round(cognitive_demand(np.asarray(img.convert("L"))), 1)}
+    if _memory.available():
+        metrics["memory"] = _memory.memory(img)
     stats = aoi_stats(heat, aois or [])
     for a in stats:
         metrics.setdefault(f"{a['label']}_attention", a["attention_pct"])  # first AOI per label

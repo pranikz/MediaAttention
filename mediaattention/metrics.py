@@ -6,6 +6,7 @@ import numpy as np
 DEFAULT_RANGES = {
     "focus": [60, 100],
     "cognitive_demand": [25, 55],
+    "memory": [85, 100],
     "brand_attention": [10, 100],
     "product_attention": [15, 100],
     "cta_attention": [5, 100],

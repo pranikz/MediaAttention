@@ -5,6 +5,7 @@ Open-source predicted attention for ads and media. Give it an image or video cre
 - **Attention heatmap and fog map**: where the eye lands in the first seconds
 - **Focus** (0–100): attention on a few elements (high) vs. scattered everywhere (low)
 - **Cognitive Demand** (0–100): visual complexity, measured as local Shannon entropy
+- **Memory** (0–100, optional): predicted share of viewers who would recognise the creative after a brief exposure
 - **AOI attention**: % of attention on brand, product, headline and CTA, plus *lift* (attention share ÷ area share)
 - **Impact Score** (1–10): each metric is scored against a recommended range, then averaged
 
@@ -17,7 +18,10 @@ pip install -e .                 # core: spectral-residual fallback, no ML deps
 pip install -e ".[deepgaze]"     # DeepGaze IIE attention model (recommended)
 pip install -e ".[aoi]"          # automatic AOI detection (OCR + OWLv2)
 pip install -e ".[video]"        # video support (PyAV)
+pip install -e ".[memory]"       # memory score (ResMem). NON-COMMERCIAL license, see Licenses
 ```
+
+When ResMem is installed, `memory` is added to every report automatically. Videos also get `memory_start` / `memory_end`.
 
 ## Use
 
@@ -83,6 +87,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 | Heatmap | DeepGaze IIE with a Gaussian center-bias prior. Fallback: spectral residual (Hou & Zhang 2007). |
 | Focus | Share of the image needed to hold 80% of predicted attention, mapped to 0–100 (an attention-dispersion measure). |
 | Cognitive Demand | Mean Shannon entropy of 16×16 blocks of the grayscale image (32 levels), normalized to 0–100. |
+| Memory | ResMem (Needell & Bainbridge 2022), trained on LaMem/MemCat recognition data. It predicts the share of people who recognise an image when it repeats in a rapid stream, the same game Neurons' memory model is built on. Scores cluster high (a plain grey image gets ~81, ads ~90–98), so compare within a `bench` corpus rather than reading absolute values. Videos are scored per frame, without audio. |
 | AOI detection | OCR (RapidOCR) reads every text line. A short line on a solid colour patch is the CTA, and the box grows out to the button's edges. The largest text is the headline, and the rest is body. Logo and product come from OWLv2 zero-shot detection (`--product` says what to look for). If OWLv2 is unsure about the logo, a short text line in the top or bottom band is used instead. |
 | AOI attention % | Sum of heatmap mass inside the box. |
 | Video | Frames are sampled at `--fps`. Each heatmap is averaged over the last second, so attention lingers briefly after a cut, as eye-tracking shows. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. AOIs are detected at the start and after each cut; static AOIs from a JSON file apply to every frame. |
@@ -101,7 +106,8 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 - [ ] Video: track AOIs within a shot (they're currently fixed per shot, so they drift on zooms and pans)
 - [x] `mediaattention bench <folder>`: build recommended ranges from your own corpus
 - [ ] `bench` ranked by real KPIs (CTR, recall) when you have them
-- [ ] Memory score (ResMem)
+- [x] Memory score (ResMem)
+- [ ] Commercial-friendly memory model (retrain on openly licensed data)
 - [ ] Open ad eye-tracking benchmark (CC / SIM / KLD) to publish real accuracy numbers
 - [ ] Open data-collection kit: webcam eye-tracking plus timed Yes/No response tests, so the community can build ad-specific and emotion models
 
@@ -111,5 +117,6 @@ The code is Apache-2.0. Model weights are downloaded at runtime and keep their o
 
 - DeepGaze IIE code is MIT; its weights are trained on SALICON/MIT1003.
 - OWLv2 and RapidOCR are Apache-2.0. PyAV is BSD-3-Clause.
+- **ResMem is non-commercial only** (University of Chicago license). Research use, including inside a company, is fine. Using it in a commercial product needs permission from the Brain Bridge Lab. It's an optional extra, so nothing else depends on it.
 
 Check the dataset terms before any commercial use.
