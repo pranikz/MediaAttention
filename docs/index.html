@@ -416,6 +416,10 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
         <div class="frame step reveal"><span class="name">2 · share</span><div class="box"><h4>Send one link</h4><p>Participants calibrate with 9 clicks, watch each ad for 5 s, then answer Yes/No with F and J, timed in milliseconds. They download a results file at the end.</p></div></div>
         <div class="frame step reveal"><span class="name">3 · import</span><div class="box"><h4>Get real data</h4><p><span class="mono">mediaattention collect</span> turns the files into an eye-tracking dataset to score models against, plus per-ad engagement, trust, avoidance, intent and memory scores for <span class="mono">bench --kpi</span>.</p></div></div>
       </div>
+      <div class="frame reveal" style="margin-top:28px"><span class="name">where the data lives</span><div class="box" style="padding:22px 24px">
+        <p style="margin:0 0 10px"><b>Nowhere central: there is no server and no database.</b> During the study, results exist only in the participant's browser tab. Webcam frames are processed on the spot and discarded, so no video or image of anyone is ever stored or sent.</p>
+        <p style="margin:0">At the end, the participant downloads one results file (gaze coordinates, answers and reaction times; no name, email or IP, just a random ID) to their own device. They choose whether to send it to you, and you import it locally. The study page itself is static: nothing flows back to it.</p>
+      </div></div>
       <p class="muted reveal" style="margin-top:28px;font-size:15px">Gaze comes from MediaPipe face landmarks (Apache-2.0) and a per-person calibration. Expect 2–4° of error, which is fine for heatmaps across many people. <a href="collect/?sim=1" style="color:var(--paper)">Try the study flow</a>, with your mouse standing in for your eyes.</p>
     </div>
   </section>

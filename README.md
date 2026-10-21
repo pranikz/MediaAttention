@@ -144,6 +144,19 @@ Every commercial attention tool rests on a private panel. MediaAttention ships t
    - `scores.csv`: per-ad **engagement, trust, avoidance and intent** (0–100) and **memory** (recognition hit rate minus false alarms). Feed it to `bench --kpi study/scores.csv` to see which predicted metrics track what your audience actually felt.
    - `quality.csv`: per-participant calibration error. Participants above 12% of the screen diagonal are excluded.
 
+**Where the data lives.** There is no server and no database; nothing is sent anywhere automatically.
+
+1. **During the study:** results exist only in the participant's browser tab, in memory. Webcam frames are processed on the spot and discarded. No video or image of the participant is ever stored or transmitted.
+2. **At the end:** the participant clicks *Download results* and gets one file, `mediaattention-<id>.json`, in their own Downloads folder. It contains:
+   - estimated gaze coordinates on each ad;
+   - their Yes/No answers with reaction times;
+   - calibration accuracy and screen size.
+
+   No name, email or IP address is recorded; the ID is a random 8-character code.
+3. **Back to you:** the participant decides whether to send that file to you (email, Slack, Drive…). You keep the files in a folder on your machine and run `mediaattention collect` locally.
+
+GitHub Pages only serves the static study page; nothing flows back to it. If you want automatic collection (e.g. to a Google Sheet or your own server), add it yourself and treat it as personal data under your privacy obligations.
+
 **How it works:**
 - **Gaze:** Google's MediaPipe face landmarks (Apache-2.0) supply iris position and head pose. A per-person ridge regression, fitted on the calibration clicks, maps them to the screen.
 - **Fixations:** found with a standard dispersion-threshold (I-DT) algorithm.
