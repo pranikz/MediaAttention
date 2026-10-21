@@ -77,6 +77,13 @@ def track_boxes(aois, grays):
     return out
 
 
+def _per_label(stats):
+    out = {}
+    for a in stats:  # several boxes per role are summed
+        out[a["label"]] = round(out.get(a["label"], 0) + a["attention_pct"], 1)
+    return out
+
+
 class _Mp4:
     """Streams PIL frames into an mp4. Frames are scaled to <=1280 wide with even sides (yuv420p)."""
 
@@ -135,7 +142,7 @@ def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.
             stats = aoi_stats(smooth, shot_aois)
             rows.append({"t": round(t, 2), "cut": None if cut is None else round(cut, 2), "focus": round(focus(smooth), 1),
                          "cognitive_demand": round(cognitive_demand(np.asarray(img.convert("L"))), 1),
-                         "aois": {a["label"]: a["attention_pct"] for a in stats}})
+                         "aois": _per_label(stats)})
             if with_memory:  # per frame, like Neurons: no audio or temporal context
                 rows[-1]["memory"] = _memory.memory(img)
             if writer:

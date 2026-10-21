@@ -16,8 +16,9 @@ def score(img, aois=None, model="auto", ranges=None):
     if _memory.available():
         metrics["memory"] = _memory.memory(img)
     stats = aoi_stats(heat, aois or [])
-    for a in stats:
-        metrics.setdefault(f"{a['label']}_attention", a["attention_pct"])  # first AOI per label
+    for a in stats:  # a role can have several boxes (e.g. two headline blocks): sum their attention
+        k = f"{a['label']}_attention"
+        metrics[k] = round(metrics.get(k, 0) + a["attention_pct"], 1)
     impact, parts = impact_score(metrics, ranges or DEFAULT_RANGES)
     return heat, {"model": used, "metrics": metrics, "aois": stats, "impact_score": impact, "impact_parts": parts}
 

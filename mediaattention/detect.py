@@ -1,9 +1,14 @@
 """AOI detection: OCR + layout rules for text roles, OWLv2 for logo and product. Needs the `aoi` extra."""
+import re
 from functools import cache
 
 import numpy as np
 
 BRAND_PROMPTS = ["a logo", "a brand logo"]
+# words too generic to identify a brand when they repeat across an ad
+STOP = set("""THE AND FOR WITH YOUR YOU OUR ARE THIS THAT FROM NEW NOW ALL GET MORE FREE BEST ONLY ONE
+CAN WILL HAS HAVE NOT BUT ITS WAS WHO OFF SALE SHOP BUY ORDER CALL TODAY HERE EVERY MADE AT
+""".split())
 
 
 @cache
@@ -52,23 +57,70 @@ def _button(rgb, box, bg):
     return [x0, y0, x1, y1]
 
 
-def text_roles(lines, rgb):
-    """lines: [([x0, y0, x1, y1], text)] in pixels -> (cta, headline, other_lines).
+def blocks(boxes):
+    """Groups text-line boxes into layout blocks: lines of similar size, stacked close, sharing a column."""
+    out = []
+    for b in sorted(boxes, key=lambda b: (b[1], b[0])):
+        h = b[3] - b[1]
+        for blk in out:
+            bottom, left, right = max(x[3] for x in blk), min(x[0] for x in blk), max(x[2] for x in blk)
+            last_h = blk[-1][3] - blk[-1][1]
+            if -h <= b[1] - bottom < 1.2 * h and min(b[2], right) > max(b[0], left) and 0.5 < h / last_h < 2:
+                blk.append(b)
+                break
+        else:
+            out.append([b])
+    return [_union(blk) for blk in out]
 
-    ponytail: layout heuristics (size, button patch, word count); swap for a layout model if ads break them.
+
+def text_roles(lines, rgb):
+    """lines: [([x0, y0, x1, y1], text)] in pixels -> (cta, headline_blocks, other_lines).
+
+    CTA: a short line, smaller than the headline type, on a button-sized patch (<= 10% of the ad) unlike the page.
+    Headline: lines within 75% of the largest text height, grouped into blocks (several boxes if
+    the ad has headlines in different places). ponytail: layout heuristics; swap for a layout model
+    if ads break them.
     """
     if not lines:
         return [], [], []
+    H, W = rgb.shape[:2]
     edge = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]]).astype(float)
     bg = np.median(edge, 0)
+    hmax = max(b[3] - b[1] for b, _ in lines)
     cta, rest = [], []
     for b, t in lines:
-        patch = not cta and len(t.split()) <= 4 and _button(rgb, b, bg)
-        cta.append(patch) if patch else rest.append((b, t))
+        patch = not cta and len(t.split()) <= 4 and b[3] - b[1] < 0.75 * hmax and _button(rgb, b, bg)
+        if patch and (patch[2] - patch[0]) * (patch[3] - patch[1]) <= 0.1 * W * H:  # a button, not a colour band
+            cta.append(patch)
+        else:
+            rest.append((b, t))
     hmax = max((b[3] - b[1] for b, _ in rest), default=0)
-    headline = [b for b, _ in rest if b[3] - b[1] >= 0.75 * hmax]
-    other = [(b, t) for b, t in rest if b not in headline]
-    return cta, headline, other
+    big = [b for b, _ in rest if b[3] - b[1] >= 0.75 * hmax]
+    return cta, blocks(big), [(b, t) for b, t in rest if b not in big]
+
+
+def _words(text):
+    return {w for w in re.findall(r"[A-Z][A-Z'&-]{2,}", text.upper()) if w not in STOP}
+
+
+def brand_line(lines, height):
+    """A wordmark from the text alone: a short line whose words recur elsewhere in the ad (brand names
+    repeat in the copy), else a short line in the top or bottom band set near body size or larger. None if
+    nothing qualifies: no brand box is better than a wrong one."""
+    best = None
+    for i, (b, t) in enumerate(lines):
+        ws = _words(t)
+        if not ws or len(t.split()) > 4:
+            continue
+        reps = sum(1 for j, (_, t2) in enumerate(lines) if j != i and ws & _words(t2))
+        if reps and (best is None or (reps, b[3] - b[1]) > best[0]):
+            best = ((reps, b[3] - b[1]), b)
+    if best:
+        return best[1]
+    body_h = np.median([b[3] - b[1] for b, _ in lines]) if lines else 0
+    band = [b for b, t in lines if len(t.split()) <= 2 and _words(t) and b[3] - b[1] >= 0.8 * body_h
+            and (b[3] < 0.2 * height or b[1] > 0.8 * height)]
+    return band[0] if band else None
 
 
 def _owl_pick(img, roles, avoid, threshold):
@@ -103,21 +155,13 @@ def detect(img, product=None, threshold=0.1):
     lines = [([min(p[0] for p in q), min(p[1] for p in q), max(p[0] for p in q), max(p[1] for p in q)], t)
              for q, t, _ in res or []]
     cta, headline, other = text_roles(lines, rgb)
-    found = {"cta": cta[0] if cta else None, "headline": _union(headline) if headline else None}
-    owl = _owl_pick(img, {"product": [product or "a product"], "brand": BRAND_PROMPTS},
-                    [b for b in found.values() if b], threshold)
-    found["product"] = owl.get("product", (None,))[0]
+    owl = _owl_pick(img, {"product": [product or "a product"], "brand": BRAND_PROMPTS}, cta + headline, threshold)
     brand, score = owl.get("brand", (None, 0))
-    if score < 0.3:
-        # OWLv2 is unsure: take a short text line in the top/bottom band, where wordmarks usually sit.
-        # ponytail: text box only, any icon next to the wordmark is missed.
-        H = rgb.shape[0]
-        marks = [b for b, t in other if len(t.split()) <= 2 and (b[3] < 0.2 * H or b[1] > 0.8 * H)]
-        brand = marks[0] if marks else brand
-    found["brand"] = brand
-    # body = remaining text not part of the logo. ponytail: one box over all body lines.
-    body = [b for b, _ in other if not brand or _overlap(b, brand) < 0.5]
-    found["body"] = _union(body) if body else None
+    if score < 0.3:  # OWLv2 is unsure: find the wordmark in the text. ponytail: text only, icons are missed
+        brand = brand_line(lines, rgb.shape[0])
+    body = blocks([b for b, _ in other if not brand or _overlap(b, brand) < 0.5])
+    found = [("cta", b) for b in cta[:1]] + [("headline", b) for b in headline] + [("body", b) for b in body]
+    found += [(k, b) for k, b in (("product", owl.get("product", (None,))[0]), ("brand", brand)) if b]
     w, h = img.size
     return [{"label": k, "box": [max(0, b[0]) / w, max(0, b[1]) / h, min(w, b[2]) / w, min(h, b[3]) / h]}
-            for k, b in found.items() if b]
+            for k, b in found]
