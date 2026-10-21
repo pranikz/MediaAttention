@@ -1,13 +1,31 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from PIL import Image
+from . import score_path
 
-from . import score
+
+def bench_main(argv):
+    ap = argparse.ArgumentParser(prog="mediaattention bench",
+                                 description="Score a folder of creatives and derive recommended ranges (benchmarks.json).")
+    ap.add_argument("folder", help="one folder per category (industry / use case)")
+    ap.add_argument("--aoi", choices=["auto"], help="detect AOIs so AOI metrics get ranges too")
+    ap.add_argument("--product", help="what the product is, for --aoi auto")
+    ap.add_argument("--model", choices=["auto", "deepgaze", "spectral"], default="auto")
+    ap.add_argument("--fps", type=float, default=2.0, help="video: frames scored per second")
+    ap.add_argument("--min-n", type=int, default=5, help="skip metrics seen in fewer assets than this")
+    ap.add_argument("--out", default="mediaattention-bench")
+    a = ap.parse_args(argv)
+    from .bench import bench
+    ranges, n = bench(a.folder, a.out, a.aoi, a.product, a.model, a.fps, a.min_n)
+    print(json.dumps({"assets": n, "ranges": ranges}, indent=2))
 
 
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["bench"]:
+        return bench_main(argv[1:])
     ap = argparse.ArgumentParser(prog="mediaattention", description="Predict where people look in an image or video and score it.")
     ap.add_argument("media", help="image or video file")
     ap.add_argument("--aoi", help="AOI JSON file ([{label, box:[x0,y0,x1,y1]}] in 0-1 coords), or 'auto'")
@@ -23,19 +41,11 @@ def main(argv=None):
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    from .video import VIDEO_EXT
-    if Path(a.media).suffix.lower() in VIDEO_EXT:
-        from .video import score_video
-        report = score_video(a.media, aois, a.product, a.model, ranges, a.fps, heat_mp4=out / "heat.mp4")
+    report, img, heat = score_path(a.media, aois, a.product, a.model, ranges, a.fps, heat_mp4=out / "heat.mp4")
+    if img is None:  # video
         (out / "scores.json").write_text(json.dumps(report, indent=2))
         print(json.dumps({k: v for k, v in report.items() if k != "timeline"}, indent=2))
         return
-
-    img = Image.open(a.media)
-    if aois == "auto":
-        from .detect import detect
-        aois = detect(img, product=a.product)
-    heat, report = score(img, aois, a.model, ranges)
 
     from .render import aoi_overlay, fog_overlay, heat_overlay
     heat_overlay(img, heat).save(out / "heat.png")

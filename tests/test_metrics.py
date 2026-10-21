@@ -76,3 +76,13 @@ def test_video_cuts_and_aoi_metrics(tmp_path):
     left = [r["aois"]["left"] for r in report["timeline"]]
     assert min(left[:3]) > 60 and max(left[4:]) < 40  # attention follows the square across the cut
     assert report["aois"]["left"]["availability_s"] == 3.0
+
+
+def test_bench_ranges():
+    from mediaattention.bench import ranges_from
+    rows = [{"focus": v, "cognitive_demand": v, "body_attention": v} for v in range(1, 101)] + [{"rare": 50}]
+    r = ranges_from(rows)
+    assert r["focus"] == [80.2, 100]  # top 20%
+    assert r["cognitive_demand"] == [25.8, 75.2]  # middle 50%: moderate is best
+    assert "rare" not in r  # too few assets to trust
+    assert "body_attention" not in r

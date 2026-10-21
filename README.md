@@ -39,6 +39,21 @@ This writes `report/heat.png`, `report/fog.png`, `report/aois.png` (heatmap with
 
 The example values are illustrative.
 
+### Calibrate the Impact Score on your own ads
+
+The default recommended ranges are placeholders. Build real ones from a folder of creatives, ideally one folder per industry or use case with 30+ assets each:
+
+```bash
+mediaattention bench ads/fmcg-social/ --aoi auto --out bench/
+mediaattention new_ad.png --aoi auto --benchmarks bench/benchmarks.json
+```
+
+`bench` scores every image and video in the folder and writes `assets.jsonl` (one line of metrics per asset) and `benchmarks.json`:
+
+- **Higher-is-better metrics** (Focus, attention on brand, product, headline and CTA): the recommended range is the top 20%.
+- **Cognitive Demand:** the middle 50%, because moderate complexity works best.
+- **Body-text attention:** excluded, because it doesn't predict results.
+
 ### Video
 
 ```bash
@@ -76,7 +91,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 ## Honest limitations
 
 - The attention model is trained on public natural-image eye-tracking data (SALICON, MIT1003), not ads. Expect it to be weaker on text-heavy creatives than an ad-specific model.
-- **The default recommended ranges are placeholders.** The Impact Score only means something once you calibrate the ranges on a corpus. The intended method is the top 20% of scores per industry/use case.
+- **The default recommended ranges are placeholders.** Run `bench` on your own ads to calibrate them. `bench` ranks assets by the metric itself, not by real results; once you have campaign KPIs (CTR, recall), rank by those instead.
 - AOI detection relies on layout rules. Ads that break them (a headline smaller than the body text, an outlined ghost button, a logo in the middle of the ad) need `--aoi aois.json`.
 - No emotion, engagement or trust scores yet. These need human response data, which nobody has released openly so far (see the roadmap).
 
@@ -84,7 +99,8 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 
 - [x] Video: per-frame scoring, first/last-2s windows, scene-cut detection
 - [ ] Video: track AOIs within a shot (they're currently fixed per shot, so they drift on zooms and pans)
-- [ ] `mediaattention bench <folder>`: build recommended ranges from your own corpus
+- [x] `mediaattention bench <folder>`: build recommended ranges from your own corpus
+- [ ] `bench` ranked by real KPIs (CTR, recall) when you have them
 - [ ] Memory score (ResMem)
 - [ ] Open ad eye-tracking benchmark (CC / SIM / KLD) to publish real accuracy numbers
 - [ ] Open data-collection kit: webcam eye-tracking plus timed Yes/No response tests, so the community can build ad-specific and emotion models
