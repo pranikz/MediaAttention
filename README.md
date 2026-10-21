@@ -116,7 +116,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 
 ## Benchmark
 
-How close are the predictions to where real people look? We scored the attention models MediaAttention can use against human eye tracking on **FiWI** (Shen & Zhao, ECCV 2014): 149 webpages, 11 viewers, 5 s free viewing. None of the models was trained on it. All metrics were computed with pysaliency on an Apple M3 Pro. The method and the script are in [`benchmarks/`](benchmarks/).
+How close are the predictions to where real people look? We scored six open attention models (MediaAttention ships DeepGaze IIE and the spectral-residual fallback today) against human eye tracking on **FiWI** (Shen & Zhao, ECCV 2014): 149 webpages, 11 viewers, 5 s free viewing. None of the models was trained on it. All metrics were computed with pysaliency on an Apple M3 Pro. The method and the script are in [`benchmarks/`](benchmarks/).
 
 | Model | CC ↑ | NSS ↑ | sAUC ↑ | AUC ↑ | SIM ↑ | KLD ↓ | s / image | Licence |
 |---|---|---|---|---|---|---|---|---|
