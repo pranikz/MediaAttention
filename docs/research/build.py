@@ -13,9 +13,11 @@ ROOT = HERE.parents[1]
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 NAMES = {"deepgaze_msdb": "DeepGaze MSDB", "deepgaze_iie": "DeepGaze IIE", "unisal": "UNISAL",
-         "transalnet": "TranSalNet-Dense", "center": "Centre-bias baseline", "spectral": "Spectral residual"}
+         "transalnet": "TranSalNet-Dense", "center": "Centre-bias baseline", "spectral": "Spectral residual",
+         "unisal_ueyes": "UNISAL, fine-tuned on UEyes (ours)"}
 LICENCE = {"deepgaze_msdb": "no licence file", "deepgaze_iie": "no licence file", "unisal": "Apache-2.0",
-           "transalnet": "MIT", "center": "–", "spectral": "–"}
+           "transalnet": "MIT", "center": "–", "spectral": "–", "unisal_ueyes": "Apache-2.0"}
+BASE = ["deepgaze_msdb", "deepgaze_iie", "unisal", "transalnet", "center", "spectral"]
 INK, MUTED, LINE, ACCENT = "#1b1d22", "#6b6e78", "#d8dade", "#2f63e6"
 
 
@@ -27,7 +29,7 @@ def load(dataset):
 # ------------------------------------------------------------------ figures (static SVG, print)
 
 def bars(r, metric="CC"):
-    keys = sorted(NAMES, key=lambda k: -r[k]["all"][metric][0])
+    keys = sorted(BASE, key=lambda k: -r[k]["all"][metric][0])
     W, row, left, right, top = 640, 30, 170, 60, 10
     H = top + row * len(keys) + 30
     x = lambda v: left + v / 0.8 * (W - left - right)
@@ -61,7 +63,7 @@ def scatter(r):
              f'<text x="14" y="{(T + H - B) / 2}" text-anchor="middle" class="ax" transform="rotate(-90 14 {(T + H - B) / 2})">CC with human attention</text>')
     offsets = {"deepgaze_msdb": (0, -12, "middle"), "deepgaze_iie": (0, 22, "middle"), "unisal": (0, -12, "middle"),
                "transalnet": (0, 22, "middle"), "center": (10, 4, "start"), "spectral": (10, 4, "start")}
-    for k in NAMES:
+    for k in BASE:
         t, c = r[k]["s_per_image"], r[k]["all"]["CC"][0]
         dx, dy, anchor = offsets[k]
         col = ACCENT if k == "unisal" else INK
@@ -73,22 +75,82 @@ def scatter(r):
 
 # ------------------------------------------------------------------ tables
 
-def results_table(r):
+def results_table(r, keys=None, timing=True):
+    keys = sorted([k for k in (keys or BASE) if k in r], key=lambda k: -r[k]["all"]["CC"][0])
     rows = []
-    for k in sorted(NAMES, key=lambda k: -r[k]["all"]["CC"][0]):
+    for k in keys:
         a = r[k]["all"]
-        name = f"<b>{NAMES[k]}</b>" if k == "unisal" else NAMES[k]
+        name = f"<b>{NAMES[k]}</b>" if k in ("unisal", "unisal_ueyes") else NAMES[k]
         rows.append(f"<tr><td>{name}</td>" + "".join(f"<td class=n>{a[m][0]:.3f}</td>" for m in ("CC", "NSS", "sAUC", "AUC", "SIM", "KLD"))
-                    + f"<td class=n>{r[k]['s_per_image']:.2f}</td><td>{LICENCE[k]}</td></tr>")
+                    + (f"<td class=n>{r[k]['s_per_image']:.2f}</td>" if timing else "") + f"<td>{LICENCE[k]}</td></tr>")
     return ("<table><thead><tr><th>Model</th><th>CC ↑</th><th>NSS ↑</th><th>sAUC ↑</th><th>AUC ↑</th><th>SIM ↑</th><th>KLD ↓</th>"
-            "<th>s / image</th><th>Licence</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>")
+            + ("<th>s / image</th>" if timing else "") + "<th>Licence</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table>")
 
 
-def category_table(r):
-    cats = sorted(r["unisal"]["by_category"])
+def category_table(r, keys=None):
+    keys = [k for k in (keys or BASE) if k in r]
+    cats = sorted(r[keys[0]]["by_category"])
     rows = "".join(f"<tr><td>{NAMES[k]}</td>" + "".join(f"<td class=n>{r[k]['by_category'][c]['CC']:.3f}</td>" for c in cats) + "</tr>"
-                   for k in ("deepgaze_msdb", "deepgaze_iie", "unisal", "transalnet", "center", "spectral"))
+                   for k in keys)
     return "<table><thead><tr><th>Model</th>" + "".join(f"<th>{c.capitalize()}</th>" for c in cats) + "</tr></thead><tbody>" + rows + "</tbody></table>"
+
+
+def ueyes_section(ueyes, test, fiwi):
+    if not ueyes:
+        return "<p>Results on UEyes are added in the next revision of this report.</p>"
+    present = [k for k in BASE if k in ueyes]
+    best = max(present, key=lambda k: ueyes[k]["all"]["CC"][0])
+    html = (f"<h3>5.4 UEyes: posters, ads and user interfaces</h3>"
+            f"<p>UEyes [27] holds 1,980 screenshots in four categories (webpages, desktop UIs, mobile UIs and posters, "
+            f"about 300 of which are real ads and posters), viewed freely for 7 s by 62 participants on a Gazepoint GP3. "
+            f"None of the six models was trained on any of it, so we evaluate on all 1,980 images. Fixations are mapped "
+            f"to image pixels exactly as the dataset's own code does; ground truth is blurred with ≈1° of visual angle.</p>"
+            + results_table(ueyes, present, timing=False)
+            + f"<p class='tcap'><b>Table 6.</b> UEyes, {ueyes[present[0]]['n']} images, models as released. "
+              f"Timing is omitted: these runs shared the machine with training (see Table 4 for speed).</p>"
+            + category_table(ueyes, [k for k in present if k not in ("center", "spectral")] + [k for k in present if k in ("center", "spectral")])
+            + "<p class='tcap'><b>Table 7.</b> CC by UEyes category.</p>")
+    if "unisal" in ueyes:
+        u = ueyes["unisal"]["all"]["CC"][0]
+        html += (f"<p>{NAMES[best]} is the most accurate on UEyes (CC {ueyes[best]['all']['CC'][0]:.3f}); UNISAL reaches {u:.3f}. "
+                 f"Interfaces and posters are harder than webpages for every model, which is where design-specific data matters.</p>")
+    if test and "unisal_ueyes" in test and "unisal" in test:
+        keys = [k for k in ("unisal_ueyes", "unisal", "deepgaze_iie", "deepgaze_msdb", "transalnet") if k in test]
+        gain = test["unisal_ueyes"]["all"]["CC"][0] - test["unisal"]["all"]["CC"][0]
+        fiwi_gain = (fiwi["unisal_ueyes"]["all"]["CC"][0] - fiwi["unisal"]["all"]["CC"][0]) if "unisal_ueyes" in fiwi else None
+        html += ("<h3>5.5 An ad- and UI-tuned model</h3>"
+                 "<p>We fine-tuned UNISAL on the UEyes training split (KL − CC loss, best epoch chosen on a held-out tenth "
+                 "of the training images) and evaluated it on the UEyes test split, 108 images it never saw, and on FiWI, "
+                 "which is out of domain for both.</p>"
+                 + results_table(test, keys, timing=False)
+                 + f"<p class='tcap'><b>Table 8.</b> UEyes test split. Fine-tuning changes CC by {gain:+.3f}"
+                 + (f"; on FiWI by {fiwi_gain:+.3f}." if fiwi_gain is not None else ".") + "</p>")
+    return html
+
+
+def real_ads_section():
+    p = ROOT / "benchmarks/results/wikimedia_real_ads.json"
+    if not p.exists():
+        return ""
+    r = json.loads(p.read_text())
+    b, a = r["rules"]["before_fix"], r["rules"]["after_fix"]
+    row = lambda k, lab: (f"<tr><td>{lab}</td><td class=n>{b['median'].get(k, float('nan')):.1f}</td>"
+                          f"<td class=n>{a['median'].get(k, float('nan')):.1f}</td></tr>")
+    rng = r["recommended_ranges_after_fix"]
+    return ("<h3>5.6 Behaviour on 272 real ads</h3>"
+            "<p>To see how the pipeline behaves on real creatives, we scored 272 openly licensed print ads and advertising "
+            "posters from Wikimedia Commons (CLIP-filtered from 300 to remove photographs of ads in the wild). There is no "
+            "eye tracking here, so this measures behaviour, not accuracy. A visual audit found four layout rules that real "
+            "ads broke (coloured bands read as buttons, a top/bottom wordmark fallback that picked fine print, and headline "
+            "and body boxes merged across the page). Fixing them changed the medians substantially:</p>"
+            "<table><thead><tr><th>Median per ad</th><th>Before fix</th><th>After fix</th></tr></thead><tbody>"
+            + row("body_attention", "Body-copy attention (%)") + row("headline_attention", "Headline attention (%)")
+            + row("brand_attention", "Brand attention (%)") + row("cta_attention", "CTA attention (%)")
+            + row("focus", "Focus") + row("cognitive_demand", "Cognitive demand") + "</tbody></table>"
+            f"<p class='tcap'><b>Table 9.</b> 272 Wikimedia ads, UNISAL. Targets calibrated on these ads "
+            f"(top 20%; middle 50% for complexity): focus {rng['focus'][0]}–{rng['focus'][1]}, cognitive demand "
+            f"{rng['cognitive_demand'][0]}–{rng['cognitive_demand'][1]}, brand attention ≥ {rng['brand_attention'][0]}%. "
+            "These are vintage print ads, so treat them as a reference, not as targets for modern digital creative.</p>")
 
 
 # ------------------------------------------------------------------ document
@@ -96,16 +158,15 @@ def category_table(r):
 def build():
     fiwi = load("fiwi")
     ueyes = load("ueyes")
+    ueyes_test = load("ueyes_test")
     u, iie, msdb, tsn = (fiwi[k]["all"]["CC"][0] for k in ("unisal", "deepgaze_iie", "deepgaze_msdb", "transalnet"))
     speedup = fiwi["deepgaze_iie"]["s_per_image"] / fiwi["unisal"]["s_per_image"]
-    text_cc = {k: fiwi[k]["by_category"]["text"]["CC"] for k in NAMES}
-    pict_cc = {k: fiwi[k]["by_category"]["pictorial"]["CC"] for k in NAMES}
-    ueyes_section = (
-        "<p>Results on UEyes are added in the next revision of this report.</p>" if not ueyes else
-        f"<h3>5.4 UEyes: posters, ads and user interfaces</h3>{results_table(ueyes)}")
+    text_cc = {k: fiwi[k]["by_category"]["text"]["CC"] for k in BASE}
+    pict_cc = {k: fiwi[k]["by_category"]["pictorial"]["CC"] for k in BASE}
+
     html = TEMPLATE.format(
         css=CSS, bars=bars(fiwi), scatter=scatter(fiwi), results=results_table(fiwi), categories=category_table(fiwi),
-        ueyes=ueyes_section, u=u, iie=iie, msdb=msdb, tsn=tsn, speedup=speedup,
+        ueyes=ueyes_section(ueyes, ueyes_test, fiwi) + real_ads_section(), u=u, iie=iie, msdb=msdb, tsn=tsn, speedup=speedup,
         gap_lo=iie - u, gap_hi=msdb - u, text_u=text_cc["unisal"], text_msdb=text_cc["deepgaze_msdb"],
         pict_u=pict_cc["unisal"], pict_msdb=pict_cc["deepgaze_msdb"], center=fiwi["center"]["all"]["CC"][0],
         version="v0.1 (FiWI results)" if not ueyes else "v0.2 (FiWI and UEyes results)")
@@ -294,6 +355,16 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <p>A tool that publishes MIT/Tübingen entries, or runs on an open benchmark such as this one, can be compared. A bare percentage cannot.</p>
 <h3>6.2 What predicted attention can and cannot tell you</h3>
 <p>Models trained on free viewing predict bottom-up, first-seconds attention: what pops out. They do not model goal-directed search (a shopper looking for a price), audio in video, or the placement context of an ad. Small independent comparisons of commercial tools with eye tracking point the same way: predicted maps track salience but miss goal-driven attention. Predicted attention is a fast first filter for comparing creative variants, not a replacement for testing with people when stakes are high.</p>
+
+<h3>6.3 An open panel</h3>
+<p>Commercial tools rest on private panels, and their secondary metrics (engagement, trust, memory) cannot be checked from outside. MediaAttention ships the panel instead: a static browser study with no server and no uploads.</p>
+<ul>
+<li><b>Gaze:</b> estimated from MediaPipe face landmarks with a per-participant ridge calibration, a click-to-fixate 9-point grid followed by a 5-point accuracy check.</li>
+<li><b>Implicit responses:</b> timed Yes/No word tests, with answers weighted by each person's relative speed.</li>
+<li><b>Memory:</b> a recognition test against unseen foil ads.</li>
+<li><b>Data handling:</b> participants download their own results file and choose whether to send it back. <code>mediaattention collect</code> converts the files into an eye-tracking dataset that any model can be scored on, plus per-ad implicit scores that plug into KPI calibration.</li>
+</ul>
+<p>Webcam gaze is coarse (2–4° versus about 0.5° for lab trackers), but aggregated over participants it is enough to validate heatmaps on one's own creatives. It is also a route to openly licensed training data for ad-specific attention and emotion models.</p>
 
 <h2>7. Limitations and next steps</h2>
 <ul>
