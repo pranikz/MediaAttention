@@ -1,6 +1,6 @@
 # MediaAttention
 
-**Site:** https://pranikz.github.io/MediaAttention/
+**Site:** https://pranikz.github.io/MediaAttention/ · **Hugging Face:** https://huggingface.co/spaces/pranikz/MediaAttention
 
 Open-source predicted attention for ads and media. Give it an image or video creative and it predicts where people will look, then scores it:
 
@@ -114,6 +114,36 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 | Video | Frames are sampled at `--fps`. Each heatmap is averaged over the last second, so attention lingers briefly after a cut, as eye-tracking shows. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. Auto AOIs are detected at the start of each shot, then tracked through every frame with Lucas–Kanade optical flow. Each box gets its own shift and zoom, so camera moves and moving objects are both followed. AOIs from a JSON file stay fixed for the whole video. |
 | Impact Score | 10 inside the recommended range; outside, it falls linearly from 7 at the edge to 1 at the end of the scale. The final score is the mean over available metrics, and missing AOIs are skipped. |
 
+## Benchmark
+
+How close are the predictions to where real people look? We scored the attention models MediaAttention can use against human eye tracking on **FiWI** (Shen & Zhao, ECCV 2014): 149 webpages, 11 viewers, 5 s free viewing. None of the models was trained on it. All metrics were computed with pysaliency on an Apple M3 Pro. The method and the script are in [`benchmarks/`](benchmarks/).
+
+| Model | CC ↑ | NSS ↑ | sAUC ↑ | AUC ↑ | SIM ↑ | KLD ↓ | s / image | Licence |
+|---|---|---|---|---|---|---|---|---|
+| DeepGaze MSDB | 0.676 | 1.54 | 0.748 | 0.840 | 0.642 | 0.462 | 2.90 | no licence file |
+| DeepGaze IIE (default) | 0.649 | 1.50 | 0.729 | 0.824 | 0.629 | 0.504 | 0.67 | no licence file |
+| UNISAL | 0.615 | 1.31 | 0.661 | 0.795 | 0.613 | 0.787 | 0.15 | Apache-2.0 |
+| TranSalNet-Dense | 0.608 | 1.25 | 0.646 | 0.788 | 0.605 | 0.603 | 0.10 | MIT |
+| Centre-bias baseline | 0.345 | 0.62 | 0.500 | 0.676 | 0.476 | 0.899 | 0.01 | – |
+| Spectral residual (fallback) | 0.209 | 0.40 | 0.562 | 0.633 | 0.449 | 1.052 | 0.00 | – |
+
+Correlation (CC) with human attention, by page type:
+
+| Model | Pictorial | Mixed | Text |
+|---|---|---|---|
+| DeepGaze MSDB | 0.751 | 0.686 | 0.592 |
+| DeepGaze IIE (default) | 0.726 | 0.680 | 0.541 |
+| UNISAL | 0.675 | 0.641 | 0.530 |
+| TranSalNet-Dense | 0.650 | 0.642 | 0.532 |
+
+What this means:
+
+- **DeepGaze MSDB is the most accurate** on every metric, but ~4× slower than DeepGaze IIE.
+- **UNISAL is the strongest model with a permissive licence**, within ~0.03–0.06 CC of DeepGaze. It is also 4× faster than IIE.
+- **Text-heavy layouts are the hardest case for every model.** This is where ad-specific training data would help most.
+
+An ad and poster benchmark on UEyes (CHI 2023) is in progress.
+
 ## Honest limitations
 
 - The attention model is trained on public natural-image eye-tracking data (SALICON, MIT1003), not ads. Expect it to be weaker on text-heavy creatives than an ad-specific model.
@@ -129,7 +159,9 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 - [ ] `bench` ranked by real KPIs (CTR, recall) when you have them
 - [x] Memory score (ResMem)
 - [ ] Commercial-friendly memory model (retrain on openly licensed data)
-- [ ] Open ad eye-tracking benchmark (CC / SIM / KLD) to publish real accuracy numbers
+- [x] Eye-tracking benchmark of the open models (FiWI webpages; see Benchmark)
+- [ ] Ad and poster benchmark on UEyes (in progress)
+- [ ] Permissive default model: switch to UNISAL (Apache-2.0) or get DeepGaze's licence clarified
 - [ ] Open data-collection kit: webcam eye-tracking plus timed Yes/No response tests, so the community can build ad-specific and emotion models
 
 ## Licenses
