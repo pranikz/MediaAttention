@@ -164,7 +164,11 @@ let landmarker = null, video = null, lastFeat = null, mouse = [innerWidth / 2, i
 addEventListener("mousemove", (e) => { mouse = [e.clientX, e.clientY]; });
 
 async function startCamera() {
-  if (SIM) { $("face-status").textContent = "Simulation mode: your mouse stands in for your gaze."; $("b-calib").disabled = false; return; }
+  if (SIM) {
+    $("cam").hidden = true;
+    $("face-status").innerHTML = 'Simulation mode: <b>no camera is used</b>. Your mouse stands in for your gaze. <a href="./" style="color:var(--paper)">Use your webcam instead</a>.';
+    $("b-calib").disabled = false; return;
+  }
   const { FaceLandmarker, FilesetResolver } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
   const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
   landmarker = await FaceLandmarker.createFromOptions(files, {
