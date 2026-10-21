@@ -87,14 +87,34 @@ def load_ueyes(split="test"):
     return items, {"ppd_screen": 40.0, "screen": (1920, 1200)}
 
 
+def load_collected():
+    """Your own study from the browser kit: `mediaattention collect` output in $MA_COLLECTED (fixations.csv,
+    ads.json) and the ad images in $MA_COLLECTED/ads/ (matched by filename)."""
+    import pandas as pd
+    root = Path(os.environ["MA_COLLECTED"]).expanduser()
+    srcs = json.loads((root / "ads.json").read_text())
+    fx = pd.read_csv(root / "fixations.csv")
+    items = []
+    for ad, g in fx.groupby("ad"):
+        path = root / "ads" / Path(srcs[ad]).name
+        w, h = Image.open(path).size
+        items.append({"path": path, "category": "study", "xs": list(g["x"] * w), "ys": list(g["y"] * h)})
+    # webcam gaze is coarse: blur ground truth with ~4% of the image diagonal (about 2 deg at a laptop distance)
+    return items, {"ppd": 40.0, "sigma": None}
+
+
 # UEyes: no benchmarked model was trained on any of it, so the whole set (1,980 images) is fair;
 # ueyes_test is the dataset's own 108-image test split, for comparison with papers that train on UEyes.
-DATASETS = {"fiwi": load_fiwi, "ueyes": lambda: load_ueyes(split=None), "ueyes_test": load_ueyes}
+DATASETS = {"fiwi": load_fiwi, "ueyes": lambda: load_ueyes(split=None), "ueyes_test": load_ueyes,
+            "collected": load_collected}
 
 
 def per_image_scale(item, meta):
     """Returns (ppd, sigma) in this image's pixels."""
     if "ppd" in meta:
+        if meta["sigma"] is None:  # relative blur for webcam data
+            w, h = Image.open(item["path"]).size
+            return meta["ppd"], 0.04 * (w * w + h * h) ** 0.5
         return meta["ppd"], meta["sigma"]
     w, h = Image.open(item["path"]).size
     k = 1 / min(meta["screen"][0] / w, meta["screen"][1] / h)  # image px per screen px
@@ -189,7 +209,8 @@ def metrics(pred, xs, ys, gt, shuffled):
     pos = pred[ys, xs]
     sx = np.clip(shuffled[:, 0], 0, pred.shape[1] - 1).astype(int)
     sy = np.clip(shuffled[:, 1], 0, pred.shape[0] - 1).astype(int)
-    return {"AUC": general_roc(pos, pred.ravel())[0], "sAUC": general_roc(pos, pred[sy, sx])[0],
+    s_auc = general_roc(pos, pred[sy, sx])[0] if len(shuffled) else float("nan")  # one image: no other images to shuffle
+    return {"AUC": general_roc(pos, pred.ravel())[0], "sAUC": s_auc,
             "NSS": float(np.mean(M.NSS(pred, xs, ys))), "CC": M.CC(pred, gt),
             "KLD": M.MIT_KLDiv(pred, gt), "SIM": M.SIM(pred, gt)}
 
@@ -218,7 +239,8 @@ def evaluate(dataset, model_names, limit=None):
             pred = MODELS[name](img, ppd)
             t_total += time.perf_counter() - t
             gt = fixation_map((img.height, img.width), it["x"], it["y"], sigma)
-            others = np.concatenate([r for j, r in enumerate(rel) if j != i]) * [img.width, img.height]
+            rest = [r for j, r in enumerate(rel) if j != i]
+            others = np.concatenate(rest) * [img.width, img.height] if rest else np.empty((0, 2))
             m = metrics(pred, it["x"], it["y"], gt, others)
             rows.append({"model": name, "image": it["path"].name, "category": it["category"], **m})
             print(f"\r{name}: {i + 1}/{len(items)}", end="", file=sys.stderr)
@@ -236,8 +258,8 @@ def summarise(rows):
         out[name] = {
             "n": len(rs),
             "s_per_image": next(r["s_per_image"] for r in rows if r["model"] == name and r["image"] == "__time__"),
-            "all": {k: [round(float(np.mean([r[k] for r in rs])), 4), round(float(np.std([r[k] for r in rs]) / np.sqrt(len(rs))), 4)] for k in keys},
-            "by_category": {c: {k: round(float(np.mean([r[k] for r in rs if r["category"] == c])), 4) for k in keys} for c in cats},
+            "all": {k: [round(float(np.nanmean([r[k] for r in rs])), 4), round(float(np.nanstd([r[k] for r in rs]) / np.sqrt(len(rs))), 4)] for k in keys},
+            "by_category": {c: {k: round(float(np.nanmean([r[k] for r in rs if r["category"] == c])), 4) for k in keys} for c in cats},
         }
     return out
 

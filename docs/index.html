@@ -217,6 +217,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       <a href="#metrics">Metrics</a>
       <a href="#built">Built</a>
       <a href="#start">Start</a>
+      <a href="#panel">Panel</a>
       <a href="#research">Research</a>
       <a href="research/MediaAttention-report.pdf">Report</a>
       <a class="pill solid" href="https://github.com/pranikz/MediaAttention">GitHub ↗</a>
@@ -403,6 +404,19 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
 <span class="p">$ </span><b>mediaattention bench ads/fmcg/ \
     --aoi auto --out bench/</b></pre></div></div>
       </div>
+    </div>
+  </section>
+
+  <section id="panel">
+    <div class="wrap">
+      <h2 class="display sec-title reveal">Your own panel</h2>
+      <p class="sec-intro reveal">Every commercial tool rests on a private panel. MediaAttention ships the panel kit: a browser study you send to anyone, with <b>no server and no uploads</b>. Webcam eye tracking, gut-reaction word tests and a memory test give you real attention, engagement, trust and memory data on your own ads.</p>
+      <div class="steps">
+        <div class="frame step reveal"><span class="name">1 · describe</span><div class="box"><h4>Write study.json</h4><p>The ads, a few unseen "foil" ads for the memory test, and the words to react to: Engaging, Trustworthy, Boring…</p></div></div>
+        <div class="frame step reveal"><span class="name">2 · share</span><div class="box"><h4>Send one link</h4><p>Participants calibrate with 9 clicks, watch each ad for 5 s, then answer Yes/No with F and J, timed in milliseconds. They download a results file at the end.</p></div></div>
+        <div class="frame step reveal"><span class="name">3 · import</span><div class="box"><h4>Get real data</h4><p><span class="mono">mediaattention collect</span> turns the files into an eye-tracking dataset to score models against, plus per-ad engagement, trust, avoidance, intent and memory scores for <span class="mono">bench --kpi</span>.</p></div></div>
+      </div>
+      <p class="muted reveal" style="margin-top:28px;font-size:15px">Gaze comes from MediaPipe face landmarks (Apache-2.0) and a per-person calibration. Expect 2–4° of error, which is fine for heatmaps across many people. <a href="collect/?sim=1" style="color:var(--paper)">Try the study flow</a>, with your mouse standing in for your eyes.</p>
     </div>
   </section>
 

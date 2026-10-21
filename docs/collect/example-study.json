@@ -1,0 +1,20 @@
+{
+  "name": "Which ad works?",
+  "view_ms": 5000,
+  "ads": [
+    { "id": "nova", "src": "../img/ad.jpg" },
+    { "id": "summer", "src": "../img/vid-7.jpg" }
+  ],
+  "foils": [
+    { "id": "foil-1", "src": "../img/vid-1.jpg" }
+  ],
+  "words": [
+    { "word": "Engaging", "scale": "engagement" },
+    { "word": "Interesting", "scale": "engagement" },
+    { "word": "Trustworthy", "scale": "trust" },
+    { "word": "Honest", "scale": "trust" },
+    { "word": "Boring", "scale": "avoidance" },
+    { "word": "Annoying", "scale": "avoidance" },
+    { "word": "Want it", "scale": "intent" }
+  ]
+}

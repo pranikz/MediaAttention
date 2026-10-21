@@ -26,10 +26,26 @@ def bench_main(argv):
     print(json.dumps({"assets": n, "skipped": skipped, "ranges": ranges}, indent=2))
 
 
+def collect_main(argv):
+    ap = argparse.ArgumentParser(prog="mediaattention collect",
+                                 description="Import result files from the browser study kit into a dataset and per-ad scores.")
+    ap.add_argument("results", nargs="+", help="mediaattention-*.json files downloaded by participants")
+    ap.add_argument("--out", default="study")
+    a = ap.parse_args(argv)
+    from .collect import import_results
+    rows, quality = import_results(a.results, a.out)
+    kept = sum(q["kept"] for q in quality)
+    print(f"{kept}/{len(quality)} participants kept (calibration error <= 12% of the screen diagonal)")
+    print(json.dumps(rows, indent=2))
+    print(f"wrote {a.out}/fixations.csv, scores.csv (use with: bench --kpi {a.out}/scores.csv) and quality.csv")
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["bench"]:
         return bench_main(argv[1:])
+    if argv[:1] == ["collect"]:
+        return collect_main(argv[1:])
     if argv[:1] == ["ui"]:
         from .ui import main as ui_main
         return ui_main(argv[1:])

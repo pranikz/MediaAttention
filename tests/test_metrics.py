@@ -186,3 +186,22 @@ def test_bench_ranges_from_kpi():
     assert corr["focus"]["spearman_rho"] > 0.7 and abs(corr["cognitive_demand"]["spearman_rho"]) < 0.4
     _, low = ranges_from_kpi(by_file, {f: -v for f, v in kpis.items()}, lower_better=True)
     assert low["correlation_with_kpi"]["focus"]["spearman_rho"] > 0.7  # e.g. CPC: lower is better
+
+
+def test_collect_fixations_and_implicit_scores(tmp_path):
+    from mediaattention.collect import fixations, implicit_scores, import_results
+    # 300 ms dwelling at (0.2, 0.3), a saccade, then 400 ms at (0.7, 0.6); 30 Hz samples
+    gaze = [(t, 0.2, 0.3) for t in range(0, 300, 33)] + [(330, 0.45, 0.45)] + [(t, 0.7, 0.6) for t in range(363, 763, 33)]
+    fx = fixations(gaze)
+    assert len(fx) == 2 and abs(fx[0][0] - 0.2) < 0.01 and abs(fx[1][1] - 0.6) < 0.01
+    # fast yeses on ad A, slow noes on ad B
+    ans = {"p1": [("A", "engagement", True, 450)] * 4 + [("B", "engagement", False, 1400)] * 4}
+    s = implicit_scores(ans)
+    assert s["A"]["engagement"] > 50 > s["B"]["engagement"]
+    result = {"format": "mediaattention-study/1", "participant": "p1", "sim": True, "calibration": None,
+              "trials": [{"ad": "A", "src": "img/a.png", "gaze": gaze, "answers": [{"scale": "trust", "yes": True, "rt": 500}] * 3}],
+              "recognition": [{"ad": "A", "old": True, "said_seen": True}, {"ad": "X", "old": False, "said_seen": False}]}
+    (tmp_path / "r.json").write_text(json.dumps(result))
+    rows, quality = import_results([tmp_path / "r.json"], tmp_path / "out")
+    assert rows[0]["file"] == "a.png" and rows[0]["memory"] == 100.0 and quality[0]["fixations"] == 2
+    assert (tmp_path / "out/fixations.csv").read_text().count("\n") == 3

@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediaAttention study</title>
+<meta name="description" content="Open attention study: webcam eye tracking, quick Yes/No reactions and a recognition test on ads. Runs entirely in your browser; nothing is uploaded.">
+<meta name="theme-color" content="#08090b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<style>
+:root { --ink: #08090b; --raised: #101216; --paper: #ececef; --muted: #8b8e98; --line: #1d1f25; --accent: #5b8cff; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); font: 16px/1.55 "Archivo", system-ui, sans-serif; }
+.screen { display: none; min-height: 100%; }
+.screen.on { display: flex; }
+.panel { margin: auto; width: min(640px, calc(100vw - 32px)); padding: 48px 0; }
+h1 { font-variation-settings: "wdth" 62; font-weight: 800; text-transform: uppercase; font-size: clamp(44px, 9vw, 76px); line-height: .86; margin: 0 0 20px; }
+h2 { font-variation-settings: "wdth" 62; font-weight: 800; text-transform: uppercase; font-size: 34px; line-height: .9; margin: 0 0 14px; }
+p, li { color: var(--muted); }
+b { color: var(--paper); font-weight: 600; }
+.label { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-variation-settings: "wdth" 125; }
+.box { border: 1px solid var(--line); background: var(--raised); padding: 20px 22px; margin: 18px 0; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 11px 20px; border-radius: 999px; font: 600 15px "Archivo", sans-serif; border: 1px solid var(--line); background: transparent; color: var(--paper); cursor: pointer; }
+.pill.solid { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+.pill:disabled { opacity: .4; cursor: default; }
+.pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+label.check { display: flex; gap: 10px; align-items: flex-start; color: var(--paper); margin: 14px 0; }
+input[type=checkbox] { margin-top: 4px; accent-color: var(--accent); }
+#cam { width: 240px; border: 1px solid var(--line); transform: scaleX(-1); display: block; margin: 12px 0; }
+.stage { position: fixed; inset: 0; background: var(--ink); }
+.dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; background: var(--paper); box-shadow: 0 0 0 6px rgba(91, 140, 255, .35); cursor: pointer; border: 0; padding: 0; }
+.dot::after { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: var(--ink); }
+.cross { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 40px; color: var(--muted); }
+#ad { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 92vw; max-height: 88vh; display: none; }
+.word { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); text-align: center; }
+.word .q { color: var(--muted); font-size: 18px; }
+.word .w { font-variation-settings: "wdth" 62; font-weight: 800; text-transform: uppercase; font-size: clamp(48px, 10vw, 96px); line-height: .9; margin: 10px 0 26px; }
+.keys { display: flex; gap: 14px; justify-content: center; color: var(--muted); font-size: 14px; }
+kbd { font: 600 14px ui-monospace, Menlo, monospace; border: 1px solid var(--line); background: var(--raised); color: var(--paper); padding: 4px 9px; border-radius: 6px; }
+.thumb { max-width: min(520px, 80vw); max-height: 52vh; display: block; margin: 0 auto 22px; }
+#progress { position: fixed; left: 0; top: 0; height: 2px; background: var(--accent); width: 0; transition: width .3s; z-index: 5; }
+.err { color: #ff8a8a; }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<section class="screen on" id="s-intro"><div class="panel">
+  <div class="label">MediaAttention · open attention study</div>
+  <h1 id="study-name">Where do you look?</h1>
+  <p>You'll see a few ads for 5 seconds each. Your webcam estimates where you look, then you answer quick Yes/No questions with two keys. It takes about <b id="minutes">5</b> minutes.</p>
+  <div class="box">
+    <p style="margin-top:0"><b>What is recorded:</b> estimated gaze positions on each ad, your Yes/No answers and how fast you gave them. <b>No video or images of you are stored or sent anywhere.</b> The camera feed is processed only inside this browser tab.</p>
+    <p style="margin-bottom:0"><b>Nothing is uploaded.</b> At the end you download a results file and send it to the person running the study, if you choose to.</p>
+  </div>
+  <label class="check" for="consent"><input type="checkbox" id="consent" aria-describedby="consent-text"> <span id="consent-text">I understand and agree to take part. I can stop at any time by closing this tab.</span></label>
+  <button class="pill solid" id="b-start" disabled>Start</button>
+  <p class="err" id="intro-err"></p>
+</div></section>
+
+<section class="screen" id="s-camera"><div class="panel">
+  <div class="label">Step 1 · camera</div>
+  <h2>Face the screen</h2>
+  <p>Sit about an arm's length away, in even light, and keep your head fairly still. Your face should be centred below.</p>
+  <video id="cam" autoplay playsinline muted></video>
+  <p id="face-status">Starting the camera…</p>
+  <button class="pill solid" id="b-calib" disabled>Calibrate</button>
+</div></section>
+
+<section class="screen" id="s-calib-help"><div class="panel">
+  <div class="label">Step 2 · calibration</div>
+  <h2>Look and click</h2>
+  <p>Dots will appear one at a time. <b>Look straight at each dot and click it.</b> Keep your eyes on it until it moves. Then, without clicking, just watch a few more dots so we can check accuracy.</p>
+  <button class="pill solid" id="b-go-calib">Begin</button>
+</div></section>
+
+<section class="screen" id="s-calib-result"><div class="panel">
+  <div class="label">Step 2 · calibration</div>
+  <h2 id="calib-title">Calibrated</h2>
+  <p id="calib-text"></p>
+  <button class="pill" id="b-recalib">Calibrate again</button>
+  <button class="pill solid" id="b-practice">Continue</button>
+</div></section>
+
+<section class="screen" id="s-practice"><div class="panel">
+  <div class="label">Step 3 · how answering works</div>
+  <h2>Go with your gut</h2>
+  <p>After each ad, words appear one at a time, like <b>"Engaging?"</b>. Press <kbd>J</kbd> for <b>Yes</b> and <kbd>F</kbd> for <b>No</b>, as fast as you can; your first reaction is what counts. Keep your fingers on both keys.</p>
+  <button class="pill solid" id="b-trials">Start the ads</button>
+</div></section>
+
+<section class="screen" id="s-recog-help"><div class="panel">
+  <div class="label">Last step · memory</div>
+  <h2>Seen it before?</h2>
+  <p>Now some ads will appear again, mixed with ones you haven't seen. For each: <kbd>J</kbd> = <b>I saw this</b>, <kbd>F</kbd> = <b>new to me</b>.</p>
+  <button class="pill solid" id="b-recog">Start</button>
+</div></section>
+
+<section class="screen" id="s-done"><div class="panel">
+  <div class="label">Done · thank you</div>
+  <h1>That's it</h1>
+  <p>Download your results and send the file to the person who shared this study. It contains gaze coordinates and answers only.</p>
+  <button class="pill solid" id="b-download">Download results</button>
+  <p class="label" style="margin-top:28px" id="done-meta"></p>
+</div></section>
+
+<div class="stage" id="stage" hidden>
+  <div class="cross" id="cross" hidden>+</div>
+  <img id="ad" alt="">
+  <div class="word" id="word" hidden><div class="q" id="word-q">Is this ad…</div><div class="w" id="word-w"></div>
+    <div class="keys"><span><kbd>F</kbd> No</span><span><kbd>J</kbd> Yes</span></div></div>
+</div>
+
+<script type="module">
+// ---------------------------------------------------------------- setup
+const params = new URLSearchParams(location.search);
+const SIM = params.has("sim");                       // ?sim=1: mouse position stands in for gaze (testing)
+const DEFAULT_STUDY = {
+  name: "Where do you look?",
+  view_ms: 5000,
+  ads: [{ id: "nova", src: "../img/ad.jpg" }],
+  words: [
+    { word: "Engaging", scale: "engagement" }, { word: "Interesting", scale: "engagement" },
+    { word: "Trustworthy", scale: "trust" }, { word: "Honest", scale: "trust" },
+    { word: "Boring", scale: "avoidance" }, { word: "Annoying", scale: "avoidance" },
+    { word: "Want it", scale: "intent" },
+  ],
+  foils: [],
+};
+const $ = (id) => document.getElementById(id);
+const show = (id) => { document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === id)); $("stage").hidden = true; };
+const shuffle = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const keyPress = (keys) => new Promise((resolve) => {
+  const t0 = performance.now();
+  const h = (e) => { const k = e.key.toLowerCase(); if (keys.includes(k)) { removeEventListener("keydown", h); resolve({ key: k, rt: Math.round(performance.now() - t0) }); } };
+  addEventListener("keydown", h);
+});
+
+let study = DEFAULT_STUDY;
+const result = { format: "mediaattention-study/1", participant: crypto.randomUUID().slice(0, 8), started: new Date().toISOString(),
+  screen: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio }, sim: SIM, calibration: null, trials: [], recognition: [] };
+if (SIM) window.__result = result;  // lets automated tests read the results without downloading
+
+async function loadStudy() {
+  const url = params.get("study");
+  if (!url) return;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Could not load the study file (${r.status}).`);
+  study = { ...DEFAULT_STUDY, ...(await r.json()) };
+  const base = new URL(url, location.href);
+  study.ads = study.ads.map((a) => ({ ...a, src: new URL(a.src, base).href }));
+  study.foils = (study.foils || []).map((a) => ({ ...a, src: new URL(a.src, base).href }));
+}
+
+// ---------------------------------------------------------------- gaze: MediaPipe face landmarks -> ridge regression
+// Features: iris position inside each eye (x, y), plus head yaw/pitch and face position/scale.
+let landmarker = null, video = null, lastFeat = null, mouse = [innerWidth / 2, innerHeight / 2];
+addEventListener("mousemove", (e) => { mouse = [e.clientX, e.clientY]; });
+
+async function startCamera() {
+  if (SIM) { $("face-status").textContent = "Simulation mode: your mouse stands in for your gaze."; $("b-calib").disabled = false; return; }
+  const { FaceLandmarker, FilesetResolver } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+  const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+  landmarker = await FaceLandmarker.createFromOptions(files, {
+    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task", delegate: "GPU" },
+    runningMode: "VIDEO", numFaces: 1, outputFacialTransformationMatrixes: true });
+  video = $("cam");
+  video.srcObject = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false });
+  await video.play();
+  const loop = () => {
+    if (video.readyState >= 2) {
+      const r = landmarker.detectForVideo(video, performance.now());
+      lastFeat = r.faceLandmarks?.length ? features(r.faceLandmarks[0], r.facialTransformationMatrixes?.[0]?.data) : null;
+      $("face-status").textContent = lastFeat ? "Face found. Keep still and continue." : "Looking for your face…";
+      $("b-calib").disabled = !lastFeat;
+    }
+    requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function features(lm, m) {
+  const eye = (iris, outer, inner, top, bottom) => {
+    const c = lm[iris], o = lm[outer], i = lm[inner], t = lm[top], b = lm[bottom];
+    return [(c.x - o.x) / (i.x - o.x || 1e-6), (c.y - t.y) / (b.y - t.y || 1e-6)];
+  };
+  const right = eye(468, 33, 133, 159, 145), left = eye(473, 263, 362, 386, 374);
+  const yaw = m ? Math.atan2(m[8], m[10]) : 0, pitch = m ? Math.asin(-Math.max(-1, Math.min(1, m[9]))) : 0;
+  const nose = lm[1], scale = Math.hypot(lm[33].x - lm[263].x, lm[33].y - lm[263].y);
+  return [...right, ...left, yaw, pitch, nose.x, nose.y, scale];
+}
+
+function currentFeature() {
+  if (SIM) return [mouse[0] / innerWidth, mouse[1] / innerHeight];
+  return lastFeat;
+}
+
+// ridge regression: screen xy = [f, 1] W, fitted per participant on calibration samples
+let W = null;
+function fit(X, Y, lambda = 1e-3) {
+  const A = X.map((f) => [...f, 1]), d = A[0].length;
+  const AtA = Array.from({ length: d }, (_, i) => Array.from({ length: d }, (_, j) => A.reduce((s, r) => s + r[i] * r[j], 0) + (i === j ? lambda : 0)));
+  const AtY = Array.from({ length: d }, (_, i) => [0, 1].map((k) => A.reduce((s, r, n) => s + r[i] * Y[n][k], 0)));
+  return solve(AtA, AtY);
+}
+function solve(M, B) {  // Gauss-Jordan for small systems
+  const n = M.length, a = M.map((r, i) => [...r, ...B[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(a[r][c]) > Math.abs(a[p][c])) p = r;
+    [a[c], a[p]] = [a[p], a[c]];
+    const v = a[c][c] || 1e-9; for (let k = c; k < a[c].length; k++) a[c][k] /= v;
+    for (let r = 0; r < n; r++) if (r !== c) { const f = a[r][c]; for (let k = c; k < a[r].length; k++) a[r][k] -= f * a[c][k]; }
+  }
+  return a.map((r) => r.slice(n));
+}
+const predict = (f) => { const a = [...f, 1]; return [0, 1].map((k) => a.reduce((s, v, i) => s + v * W[i][k], 0)); };
+
+// ---------------------------------------------------------------- calibration
+const GRID = [[.1, .1], [.5, .1], [.9, .1], [.1, .5], [.5, .5], [.9, .5], [.1, .9], [.5, .9], [.9, .9]];
+const CHECK = [[.3, .3], [.7, .3], [.5, .5], [.3, .7], [.7, .7]];
+
+async function calibrate() {
+  const stage = $("stage"); stage.hidden = false;
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("on"));
+  const X = [], Y = [];
+  for (const [px, py] of shuffle(GRID)) {
+    const dot = Object.assign(document.createElement("button"), { className: "dot", ariaLabel: "calibration point" });
+    dot.style.left = `${px * 100}%`; dot.style.top = `${py * 100}%`; stage.append(dot);
+    await new Promise((r) => dot.addEventListener("click", r, { once: true }));
+    const target = [px * innerWidth, py * innerHeight];
+    for (let k = 0; k < 20; k++) { const f = currentFeature(); if (f) { X.push(f); Y.push(target); } await sleep(33); }
+    dot.remove();
+  }
+  W = fit(X, Y);
+  const errs = [];
+  for (const [px, py] of CHECK) {
+    const dot = Object.assign(document.createElement("div"), { className: "dot" });
+    dot.style.left = `${px * 100}%`; dot.style.top = `${py * 100}%`; stage.append(dot);
+    await sleep(700);
+    const target = [px * innerWidth, py * innerHeight], est = [];
+    for (let k = 0; k < 20; k++) { const f = currentFeature(); if (f) est.push(predict(f)); await sleep(33); }
+    if (est.length) { const m = [0, 1].map((i) => est.reduce((s, e) => s + e[i], 0) / est.length); errs.push(Math.hypot(m[0] - target[0], m[1] - target[1])); }
+    dot.remove();
+  }
+  const diag = Math.hypot(innerWidth, innerHeight), err = errs.length ? errs.reduce((a, b) => a + b) / errs.length / diag : 1;
+  result.calibration = { samples: X.length, mean_error_px: Math.round(err * diag), mean_error_frac_diag: +err.toFixed(4) };
+  const ok = err < 0.12;
+  $("calib-title").textContent = ok ? "Calibrated" : "Not quite";
+  $("calib-text").innerHTML = ok ? `Average error <b>${Math.round(err * 100)}%</b> of the screen diagonal. Good enough to continue.`
+    : `Average error <b>${Math.round(err * 100)}%</b> of the screen diagonal. Try again with your head still and your face evenly lit.`;
+  $("b-practice").disabled = !ok && !SIM;
+  show("s-calib-result");
+}
+
+// ---------------------------------------------------------------- trials
+async function showImage(src) {
+  const img = $("ad"); img.src = src; await img.decode(); img.style.display = "block"; return img;
+}
+
+async function runTrials() {
+  const stage = $("stage"); stage.hidden = false;
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("on"));
+  const ads = shuffle(study.ads);
+  for (const [n, ad] of ads.entries()) {
+    $("progress").style.width = `${(n / ads.length) * 85}%`;
+    $("cross").hidden = false; await sleep(800); $("cross").hidden = true;
+    const img = await showImage(ad.src), gaze = [], t0 = performance.now();
+    while (performance.now() - t0 < study.view_ms) {
+      const f = currentFeature(), r = img.getBoundingClientRect();
+      if (f) {
+        const [gx, gy] = SIM ? [f[0] * innerWidth, f[1] * innerHeight] : predict(f);
+        gaze.push([Math.round(performance.now() - t0), +((gx - r.left) / r.width).toFixed(4), +((gy - r.top) / r.height).toFixed(4)]);
+      }
+      await sleep(33);
+    }
+    img.style.display = "none";
+    const answers = [];
+    for (const w of shuffle(study.words)) {
+      $("word-w").textContent = `${w.word}?`; $("word").hidden = false;
+      const { key, rt } = await keyPress(["f", "j"]);
+      answers.push({ word: w.word, scale: w.scale, yes: key === "j", rt });
+      $("word").hidden = true; await sleep(250);
+    }
+    result.trials.push({ ad: ad.id, src: ad.src, view_ms: study.view_ms, gaze_fields: ["t_ms", "x", "y"], gaze, answers });
+  }
+  if (study.foils?.length) { show("s-recog-help"); return; }
+  finish();
+}
+
+async function runRecognition() {
+  const stage = $("stage"); stage.hidden = false;
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("on"));
+  const items = shuffle([...study.ads.map((a) => ({ ...a, old: true })), ...study.foils.map((a) => ({ ...a, old: false }))]);
+  for (const it of items) {
+    $("cross").hidden = false; await sleep(500); $("cross").hidden = true;
+    const img = await showImage(it.src);
+    $("word-q").textContent = ""; $("word-w").textContent = ""; $("word").hidden = false; $("word").style.top = "92%";
+    const { key, rt } = await keyPress(["f", "j"]);
+    result.recognition.push({ ad: it.id, old: it.old, said_seen: key === "j", rt });
+    img.style.display = "none"; $("word").hidden = true; $("word").style.top = ""; $("word-q").textContent = "Is this ad…";
+    await sleep(250);
+  }
+  finish();
+}
+
+function finish() {
+  $("progress").style.width = "100%";
+  result.finished = new Date().toISOString();
+  $("done-meta").textContent = `participant ${result.participant} · ${result.trials.length} ads`;
+  show("s-done");
+}
+
+$("b-download").onclick = () => {
+  const blob = new Blob([JSON.stringify(result)], { type: "application/json" });
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `mediaattention-${result.participant}.json` });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+// ---------------------------------------------------------------- wiring
+$("consent").onchange = (e) => { $("b-start").disabled = !e.target.checked; };
+$("b-start").onclick = async () => {
+  try { await loadStudy(); show("s-camera"); await startCamera(); }
+  catch (e) { show("s-intro"); $("intro-err").textContent = `${e.message} If you were asked for camera access, please allow it.`; }
+};
+$("b-calib").onclick = () => show("s-calib-help");
+$("b-go-calib").onclick = calibrate;
+$("b-recalib").onclick = calibrate;
+$("b-practice").onclick = () => show("s-practice");
+$("b-trials").onclick = runTrials;
+$("b-recog").onclick = runRecognition;
+$("study-name").textContent = study.name;
+$("minutes").textContent = Math.max(3, Math.round(study.ads.length * 0.6 + 2));
+</script>
+</body>
+</html>

@@ -121,6 +121,37 @@ from mediaattention import score
 heat, report = score(Image.open("ad.png"))  # model="unisal" by default; "deepgaze" or "spectral" also work
 ```
 
+## Run your own study
+
+Every commercial attention tool rests on a private panel. MediaAttention ships the panel kit instead: a browser study you can send to anyone, with no server and no uploads.
+
+1. **Describe the study.** Write a `study.json` listing the ads, optional "foil" ads for the memory test, and the words to react to ([example](docs/collect/example-study.json)).
+2. **Send the link.** Share `https://pranikz.github.io/MediaAttention/collect/?study=<url of your study.json>`. The study.json and ad images must be served from somewhere the page can fetch them. Each participant:
+   - calibrates webcam eye tracking by clicking 9 dots, followed by an accuracy check;
+   - views each ad for 5 s while gaze is estimated;
+   - answers quick Yes/No word tests ("Engaging?", "Trustworthy?") with the F and J keys, timed in milliseconds;
+   - optionally does a recognition test: has this ad been seen before?
+
+   At the end, participants download a results file and send it back to you.
+3. **Import the results.**
+
+   ```bash
+   mediaattention collect results/*.json --out study/
+   ```
+
+   The command writes:
+   - `fixations.csv`: a real eye-tracking dataset. Score any model on it with `MA_COLLECTED=study python benchmarks/run.py collected`.
+   - `scores.csv`: per-ad **engagement, trust, avoidance and intent** (0–100) and **memory** (recognition hit rate minus false alarms). Feed it to `bench --kpi study/scores.csv` to see which predicted metrics track what your audience actually felt.
+   - `quality.csv`: per-participant calibration error. Participants above 12% of the screen diagonal are excluded.
+
+**How it works:**
+- **Gaze:** Google's MediaPipe face landmarks (Apache-2.0) supply iris position and head pose. A per-person ridge regression, fitted on the calibration clicks, maps them to the screen.
+- **Fixations:** found with a standard dispersion-threshold (I-DT) algorithm.
+- **Implicit scores:** Yes/No answers weighted by how fast each person answered, relative to their own pace. Answers outside 300–2,500 ms are dropped.
+- **Privacy:** the camera feed never leaves the browser tab.
+
+**Limits:** webcam tracking is coarse (expect 2–4° of error versus about 0.5° for lab trackers), so use it for heatmaps across many people, not single fixations. Add `?sim=1` to the URL to try the flow with your mouse standing in for your eyes.
+
 ## How each number is computed
 
 | Metric | Method |
@@ -183,7 +214,8 @@ The full write-up, including a review of 15 commercial tools and what their accu
 - [x] Eye-tracking benchmark of the open models (FiWI webpages; see Benchmark)
 - [ ] Ad and poster benchmark on UEyes (in progress)
 - [x] Permissive default model: UNISAL (Apache-2.0), chosen by the benchmark
-- [ ] Open data-collection kit: webcam eye-tracking plus timed Yes/No response tests, so the community can build ad-specific and emotion models
+- [x] Open data-collection kit: webcam eye tracking plus timed Yes/No and recognition tests in the browser (`docs/collect/`, `mediaattention collect`)
+- [ ] Ad-specific attention and emotion models trained on data collected with the kit
 
 ## Licenses
 
