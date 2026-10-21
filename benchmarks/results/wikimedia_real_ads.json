@@ -1,0 +1,76 @@
+{
+  "corpus": "272 openly licensed print ads and advertising posters from Wikimedia Commons (CLIP-filtered from 300; in-the-wild photos removed)",
+  "note": "no eye tracking: shows score distributions and AOI detection behaviour, not accuracy",
+  "rules": {
+    "before_fix": {
+      "assets": 272,
+      "aoi_found": {
+        "headline": 0.971,
+        "brand": 0.86,
+        "body": 0.904,
+        "cta": 0.415,
+        "product": 0.169
+      },
+      "median": {
+        "body_attention": 76.8,
+        "brand_attention": 1.0,
+        "cognitive_demand": 42.4,
+        "cta_attention": 5.1,
+        "focus": 55.9,
+        "headline_attention": 23.8,
+        "memory": 85.8,
+        "product_attention": 1.3
+      }
+    },
+    "after_fix": {
+      "assets": 272,
+      "aoi_found": {
+        "headline": 0.978,
+        "body": 0.923,
+        "brand": 0.838,
+        "cta": 0.36,
+        "product": 0.188
+      },
+      "median": {
+        "body_attention": 34.9,
+        "brand_attention": 2.4,
+        "cognitive_demand": 42.4,
+        "cta_attention": 3.6,
+        "focus": 55.9,
+        "headline_attention": 14.6,
+        "memory": 85.8,
+        "product_attention": 1.3
+      }
+    }
+  },
+  "recommended_ranges_after_fix": {
+    "focus": [
+      66.4,
+      100.0
+    ],
+    "cognitive_demand": [
+      32.9,
+      52.0
+    ],
+    "memory": [
+      91.4,
+      100.0
+    ],
+    "headline_attention": [
+      30.5,
+      100.0
+    ],
+    "brand_attention": [
+      7.3,
+      100.0
+    ],
+    "cta_attention": [
+      10.8,
+      100.0
+    ],
+    "product_attention": [
+      5.4,
+      100.0
+    ]
+  }
+}

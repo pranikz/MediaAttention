@@ -54,27 +54,27 @@ def load_fiwi():
 
 
 def load_ueyes(split="test"):
-    """UEyes (Jiang et al., CHI 2023): UI screenshots and posters, Gazepoint GP3, 7 s free viewing.
+    """UEyes (Jiang et al., CHI 2023): webpages, desktop/mobile UIs and posters; Gazepoint GP3, 7 s free viewing.
 
-    Fixations are mapped from normalised screen coordinates to image pixels exactly as the
-    dataset's generate_heatmaps.py does (image letterboxed on a 1920x1200 screen).
+    Test split from image_types.csv. One point per fixation (FPOGID, valid FPOGV), mapped from normalised
+    screen coordinates to image pixels exactly as the dataset's generate_heatmaps.py does (image
+    letterboxed on a 1920x1200 screen).
     """
     import pandas as pd
     root = BENCH / "data/ueyes/UEyes_dataset"
-    info = pd.read_csv(root / "info.csv")
-    info = info[info[[c for c in info.columns if "split" in c.lower()][0]].str.lower() == split] if split else info
+    info = pd.read_csv(root / "image_types.csv", sep=";")
+    if split:
+        info = info[info["Train/Test"].str.lower() == split]
     fix = {}
     for f in sorted((root / "eyetracker_logs").glob("*_fixations.csv")):
-        d = pd.read_csv(f)
-        d = d[d["BPOGV"] == 1]
-        if "FPOGID" in d:  # one point per fixation, not per 60 Hz sample
-            d = d.groupby(["MEDIA_NAME", "FPOGID"], as_index=False).agg({"BPOGX": "mean", "BPOGY": "mean"})
+        d = pd.read_csv(f, usecols=["MEDIA_NAME", "FPOGX", "FPOGY", "FPOGID", "FPOGV"])
+        d = d[d["FPOGV"] == 1].groupby(["MEDIA_NAME", "FPOGID"], as_index=False).last()  # final estimate per fixation
         for name, g in d.groupby("MEDIA_NAME"):
-            fix.setdefault(name, []).append(g[["BPOGX", "BPOGY"]].to_numpy())
+            fix.setdefault(name, []).append(g[["FPOGX", "FPOGY"]].to_numpy())
     items = []
     for _, row in info.iterrows():
-        path = root / "images" / row["image"]
-        pts = fix.get(row["image"])
+        path = root / "images" / row["Image Name"]
+        pts = fix.get(row["Image Name"])
         if pts is None or not path.exists():
             continue
         w, h = Image.open(path).size
@@ -82,12 +82,14 @@ def load_ueyes(split="test"):
         sx, sy = (h * r, h) if r >= w / h else (w, w / r)
         p = np.concatenate(pts)
         x, y = p[:, 0] * sx - (sx - w) / 2, p[:, 1] * sy - (sy - h) / 2
-        items.append({"path": path, "category": row["category"], "xs": list(x), "ys": list(y)})
-    # 1 deg ~ 40 screen px (GP3 setup); converted to image px per image in evaluate()
+        items.append({"path": path, "category": row["Category"], "xs": list(x), "ys": list(y)})
+    # 1 deg ~ 40 screen px (GP3 setup); converted to image px per image in per_image_scale()
     return items, {"ppd_screen": 40.0, "screen": (1920, 1200)}
 
 
-DATASETS = {"fiwi": load_fiwi, "ueyes": load_ueyes}
+# UEyes: no benchmarked model was trained on any of it, so the whole set (1,980 images) is fair;
+# ueyes_test is the dataset's own 108-image test split, for comparison with papers that train on UEyes.
+DATASETS = {"fiwi": load_fiwi, "ueyes": lambda: load_ueyes(split=None), "ueyes_test": load_ueyes}
 
 
 def per_image_scale(item, meta):
