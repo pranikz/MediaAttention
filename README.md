@@ -16,13 +16,17 @@ It's an open alternative to proprietary "neuro-prediction" tools. The methods ar
 ## Install
 
 ```bash
-pip install -e .                 # core: spectral-residual fallback, no ML deps
-pip install -e ".[unisal]"       # UNISAL attention model, the default (recommended)
-pip install -e ".[deepgaze]"     # DeepGaze IIE, optional (more accurate, slower; no licence file, see Licenses)
-pip install -e ".[aoi]"          # automatic AOI detection (OCR + OWLv2)
-pip install -e ".[video]"        # video support (PyAV)
-pip install -e ".[memory]"       # memory score (ResMem). NON-COMMERCIAL license, see Licenses
-pip install -e ".[ui]"           # web UI (Gradio)
+pip install "mediaattention[all]"   # UNISAL model, AOI detection, video, web UI (recommended)
+pip install mediaattention          # core only: spectral-residual fallback, no ML dependencies
+pip install "mediaattention[memory]"   # + memory score (ResMem). NON-COMMERCIAL license, see Licenses
+```
+
+Or from source: `git clone https://github.com/pranikz/MediaAttention && pip install -e ".[all]"`. The extras can also be installed one at a time: `unisal`, `aoi`, `video`, `ui`, `memory`.
+
+DeepGaze IIE (optional, `--model deepgaze`) isn't on PyPI. Install it from source:
+
+```bash
+pip install torch torchvision einops clip-anytorch "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze"
 ```
 
 When ResMem is installed, `memory` is added to every report automatically. Videos also get `memory_start` / `memory_end`.

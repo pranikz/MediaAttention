@@ -388,11 +388,9 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       <p class="sec-intro reveal">Python 3.10+. Runs on CPU, NVIDIA GPUs and Apple Silicon. Model weights download on first use.</p>
       <div class="steps">
         <div class="frame step reveal"><span class="name">install</span><div class="box"><h4>Install</h4>
-<pre><span class="p">$ </span><b>git clone https://github.com/pranikz/MediaAttention</b>
-<span class="p">$ </span><b>cd MediaAttention</b>
-<span class="p">$ </span><b>pip install -e ".[unisal,aoi,video,ui]"</b>
+<pre><span class="p">$ </span><b>pip install "mediaattention[all]"</b>
 <span class="c"># optional, non-commercial</span>
-<span class="p">$ </span><b>pip install -e ".[memory]"</b></pre></div></div>
+<span class="p">$ </span><b>pip install "mediaattention[memory]"</b></pre></div></div>
         <div class="frame step reveal"><span class="name">web ui</span><div class="box"><h4>Web UI</h4>
 <pre><span class="p">$ </span><b>mediaattention ui</b>
 <span class="c"># http://localhost:7860</span>

@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use MediaAttention, please cite it, and the papers behind the parts you rely on (see README)."
+title: "MediaAttention: open-source attention prediction and creative scoring for ads"
+type: software
+authors:
+  - family-names: Mahapatra
+    given-names: Pratyush
+    website: "https://pranikz.dev"
+version: 0.2.0
+date-released: 2026-10-21
+license: Apache-2.0
+repository-code: "https://github.com/pranikz/MediaAttention"
+url: "https://pranikz.github.io/MediaAttention/"
+keywords: [saliency, eye-tracking, visual attention, advertising]

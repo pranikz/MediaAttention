@@ -307,7 +307,8 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 
 <h2>Appendix A · Reproducibility</h2>
 <pre>git clone https://github.com/pranikz/MediaAttention && cd MediaAttention
-pip install -e ".[unisal,deepgaze]" "git+https://github.com/matthias-k/pysaliency.git@dev" pandas scikit-image tensorboardX fire
+pip install -e ".[unisal]" "git+https://github.com/matthias-k/pysaliency.git@dev" pandas scikit-image
+pip install torch torchvision einops clip-anytorch "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze" fire
 python benchmarks/run.py fiwi --models center,spectral,unisal,transalnet,deepgaze_iie,deepgaze_msdb
 python docs/research/build.py</pre>
 <p class="small">Dataset and third-party model locations are documented in <code>benchmarks/run.py</code>. Per-image scores are in <code>benchmarks/results/</code>.</p>

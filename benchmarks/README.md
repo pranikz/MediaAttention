@@ -3,7 +3,8 @@
 How well do open attention models predict where real people look? `run.py` scores each model against human eye-tracking data with the standard saliency metrics, computed with [pysaliency](https://github.com/matthias-k/pysaliency) (the library behind the MIT/Tübingen benchmark).
 
 ```bash
-pip install "git+https://github.com/matthias-k/pysaliency.git@dev" pandas scikit-image tensorboardX fire
+pip install -e ".[unisal]" "git+https://github.com/matthias-k/pysaliency.git@dev" pandas scikit-image
+pip install torch torchvision einops clip-anytorch "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze"  # DeepGaze IIE/MSDB
 python benchmarks/run.py fiwi --models center,spectral,deepgaze_iie,deepgaze_msdb,transalnet,unisal
 ```
 
