@@ -1,5 +1,6 @@
 """Attention heatmap prediction. Returns an (H, W) float map at the image's size."""
 import contextlib
+import os
 import sys
 from functools import cache
 
@@ -80,7 +81,9 @@ def _unisal(dev):
     cfg["cnn_cfg"]["pretrained"] = False  # the full state dict below includes the backbone
     cfg["verbose"] = 0
     m = UNISAL(**cfg)
-    m.load_state_dict(torch.load(hf_hub_download(UNISAL_REPO, "unisal_salicon.pth"), map_location="cpu"))
+    # MA_UNISAL_WEIGHTS: a local state dict (e.g. a fine-tuned model) instead of the published SALICON weights
+    weights = os.environ.get("MA_UNISAL_WEIGHTS") or hf_hub_download(UNISAL_REPO, "unisal_salicon.pth")
+    m.load_state_dict(torch.load(weights, map_location="cpu"))
     return m.to(dev).eval()
 
 
