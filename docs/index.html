@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediaAttention: see your ad the way people will</title>
+<meta name="description" content="Open-source attention prediction for ads and video: heatmaps, focus, cognitive demand, memory, AOI attention and an impact score, calibrated on your own creatives.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f3efe6;
+  --paper-2: #ebe5d8;
+  --ink: #16140f;
+  --ink-2: #4a463d;
+  --ink-3: #8a8476;
+  --rule: #cfc7b6;
+  --heat: #e2401c;
+  --heat-soft: #f6c9b8;
+  --gaze: #2f7d4f;
+  --serif: "Instrument Serif", "Times New Roman", serif;
+  --sans: "Hanken Grotesk", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --wrap: min(1160px, calc(100vw - 32px));
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 17px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+/* paper grain */
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.27 0 0 0 0 0.2 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+main, header, footer { position: relative; z-index: 1; }
+a { color: inherit; text-decoration-color: var(--heat); text-underline-offset: 3px; }
+a:hover { color: var(--heat); }
+.wrap { width: var(--wrap); margin: 0 auto; }
+.mono { font-family: var(--mono); font-size: .82em; letter-spacing: -.01em; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+
+/* top bar */
+.bar { border-bottom: 1px solid var(--rule); }
+.bar .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
+.mark { display: flex; align-items: center; gap: 10px; font: 600 15px var(--sans); text-decoration: none; }
+.mark i { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle, var(--heat) 0 30%, #f7a23a 55%, #8fd27a 80%, transparent 82%); }
+.bar nav { display: flex; gap: 22px; font-size: 14px; }
+.bar nav a { text-decoration: none; color: var(--ink-2); }
+@media (max-width: 760px) { .bar nav a:not(.gh) { display: none; } }
+
+/* hero */
+.hero { padding: 72px 0 40px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+.hero h1 { font: 400 clamp(52px, 8.4vw, 112px)/.92 var(--serif); letter-spacing: -.02em; margin: 18px 0 26px; }
+.hero h1 em { color: var(--heat); }
+.lede { font-size: 20px; line-height: 1.5; color: var(--ink-2); max-width: 34ch; margin: 0 0 30px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border: 1.5px solid var(--ink); border-radius: 999px; font: 600 15px var(--sans); text-decoration: none; transition: transform .15s ease, background .15s ease, color .15s ease; }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn:hover { transform: translateY(-2px); color: inherit; }
+.btn.solid:hover { background: var(--heat); border-color: var(--heat); color: #fff; }
+.facts { display: flex; gap: 28px; margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--rule); flex-wrap: wrap; }
+.facts div { font: 400 13px/1.4 var(--sans); color: var(--ink-3); }
+.facts b { display: block; font: 400 30px/1.1 var(--serif); color: var(--ink); }
+
+/* specimen */
+.specimen { background: #fff; padding: 14px; border: 1px solid var(--rule); box-shadow: 0 1px 0 var(--rule), 18px 22px 0 -6px var(--paper-2); transform: rotate(.6deg); }
+.stage { position: relative; aspect-ratio: 1; overflow: hidden; cursor: crosshair; touch-action: none; background: #eee; }
+.stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .35s ease; }
+.fog { position: absolute; inset: 0; background: rgba(250, 249, 246, .93); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  --x: 50%; --y: 50%; --r: 0px;
+  mask-image: radial-gradient(circle var(--r) at var(--x) var(--y), transparent 0 55%, #000 100%);
+  -webkit-mask-image: radial-gradient(circle var(--r) at var(--x) var(--y), transparent 0 55%, #000 100%);
+  transition: opacity .35s ease; }
+.stage .hint { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font: 500 12px var(--mono); background: var(--ink); color: var(--paper); padding: 7px 12px; border-radius: 999px; white-space: nowrap; transition: opacity .3s; pointer-events: none; }
+.tabs { display: flex; gap: 4px; margin-top: 12px; flex-wrap: wrap; }
+.tabs button { flex: 1; min-width: 90px; font: 500 12px var(--mono); letter-spacing: .02em; padding: 9px 8px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2); cursor: pointer; border-radius: 2px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.caption { font: 400 13px/1.5 var(--sans); color: var(--ink-3); margin: 10px 2px 0; min-height: 3em; }
+
+/* sections */
+section { padding: 88px 0; border-top: 1px solid var(--rule); }
+.sec-head { display: grid; grid-template-columns: 220px 1fr; gap: 40px; margin-bottom: 48px; }
+.sec-head h2 { font: 400 clamp(36px, 5vw, 58px)/1 var(--serif); letter-spacing: -.015em; margin: 0 0 16px; }
+.sec-head p { margin: 0; max-width: 62ch; color: var(--ink-2); font-size: 18px; }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; padding-top: 40px; } .sec-head { grid-template-columns: 1fr; gap: 10px; } .specimen { transform: none; } }
+
+/* why */
+.why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1.5px solid var(--ink); }
+.why div { padding: 26px 26px 26px 0; border-right: 1px solid var(--rule); }
+.why div + div { padding-left: 26px; }
+.why div:last-child { border-right: 0; }
+.why b { display: block; font: 400 26px/1.15 var(--serif); margin-bottom: 10px; }
+.why p { margin: 0; color: var(--ink-2); font-size: 15.5px; }
+.why cite { display: block; margin-top: 12px; font: 400 12px var(--mono); color: var(--ink-3); font-style: normal; }
+@media (max-width: 860px) { .why { grid-template-columns: 1fr; } .why div, .why div + div { padding: 22px 0; border-right: 0; border-bottom: 1px solid var(--rule); } }
+
+/* metrics */
+.metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.metric { background: var(--paper); padding: 30px 30px 28px; position: relative; }
+.metric:hover { background: #f7f4ec; }
+.metric .num { position: absolute; top: 26px; right: 28px; font: 400 13px var(--mono); color: var(--ink-3); }
+.metric h3 { font: 400 32px/1.05 var(--serif); margin: 0 0 6px; }
+.metric .range { font: 500 12px var(--mono); color: var(--heat); letter-spacing: .04em; }
+.metric dl { margin: 18px 0 0; display: grid; grid-template-columns: 92px 1fr; gap: 8px 16px; font-size: 15px; }
+.metric dt { font: 500 11px/1.9 var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); }
+.metric dd { margin: 0; color: var(--ink-2); }
+.metric dd.do { color: var(--ink); }
+@media (max-width: 760px) { .metrics { grid-template-columns: 1fr; } .metric dl { grid-template-columns: 1fr; gap: 2px; } .metric dd { margin-bottom: 10px; } }
+
+/* example readout */
+.readout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; margin-top: 56px; }
+.readout img { width: 100%; border: 1px solid var(--rule); display: block; background: #fff; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--rule); }
+th { font: 500 11px var(--mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); }
+td.n { font-family: var(--mono); font-size: 14px; }
+.score { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; }
+.score b { font: 400 76px/1 var(--serif); }
+.score span { color: var(--ink-2); }
+.bar-cell { position: relative; }
+.bar-cell i { position: absolute; left: 8px; bottom: 6px; height: 3px; background: var(--heat); }
+@media (max-width: 860px) { .readout { grid-template-columns: 1fr; } }
+
+/* pipeline */
+.pipe { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+.pipe li { counter-increment: s; padding: 24px 22px 26px; border-top: 1.5px solid var(--ink); position: relative; }
+.pipe li::before { content: counter(s, decimal-leading-zero); font: 500 12px var(--mono); color: var(--heat); display: block; margin-bottom: 14px; }
+.pipe li::after { content: "→"; position: absolute; right: -9px; top: 18px; font: 400 18px var(--sans); color: var(--ink-3); background: var(--paper); }
+.pipe li:nth-child(4n)::after, .pipe li:last-child::after { display: none; }
+.pipe h4 { font: 400 24px/1.1 var(--serif); margin: 0 0 8px; }
+.pipe p { margin: 0; font-size: 14.5px; color: var(--ink-2); }
+.pipe .tech { margin-top: 12px; font: 400 12px/1.5 var(--mono); color: var(--ink-3); }
+@media (max-width: 960px) { .pipe { grid-template-columns: 1fr 1fr; } .pipe li:nth-child(2n)::after { display: none; } }
+@media (max-width: 600px) { .pipe { grid-template-columns: 1fr; } .pipe li::after { display: none; } }
+
+/* video */
+.film { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+.film figure { margin: 0; }
+.film img { width: 100%; display: block; border: 1px solid var(--rule); }
+.film figcaption { font: 400 12px var(--mono); color: var(--ink-3); margin-top: 6px; }
+.chart { background: #fff; border: 1px solid var(--rule); padding: 18px 18px 8px; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.legend { display: flex; gap: 18px; font: 400 12px var(--mono); color: var(--ink-2); margin: 10px 0 6px; flex-wrap: wrap; }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; background: currentColor; }
+@media (max-width: 700px) { .film { grid-template-columns: 1fr 1fr; } }
+
+/* code */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.step { min-width: 0; }
+.step h4 { font: 400 24px var(--serif); margin: 0 0 10px; }
+.step p { margin: 0 0 12px; color: var(--ink-2); font-size: 15px; }
+pre { margin: 0; background: var(--ink); color: #efe9dc; padding: 16px 18px; border-radius: 3px; font: 400 13px/1.7 var(--mono); overflow-x: auto; }
+pre .c { color: #8f897b; }
+@media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+
+/* limits */
+.limits { columns: 2; column-gap: 48px; margin: 0; padding: 0; list-style: none; }
+.limits li { break-inside: avoid; padding: 14px 0 14px 28px; border-bottom: 1px solid var(--rule); position: relative; color: var(--ink-2); font-size: 15.5px; }
+.limits li::before { content: "!"; position: absolute; left: 0; top: 14px; font: 600 13px var(--mono); color: var(--heat); }
+.limits b { color: var(--ink); font-weight: 600; }
+@media (max-width: 760px) { .limits { columns: 1; } }
+
+/* references */
+.refs { columns: 2; column-gap: 48px; font-size: 14.5px; padding-left: 0; list-style: none; counter-reset: r; margin: 0; }
+.refs li { break-inside: avoid; counter-increment: r; padding: 0 0 14px 40px; position: relative; color: var(--ink-2); }
+.refs li::before { content: "[" counter(r) "]"; position: absolute; left: 0; font: 400 12px/2 var(--mono); color: var(--ink-3); }
+.refs .used { display: block; font: 400 12px var(--mono); color: var(--gaze); margin-top: 2px; }
+.refs-group { font: 500 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink); margin: 34px 0 14px; padding-bottom: 8px; border-bottom: 1.5px solid var(--ink); }
+.refs-group:first-of-type { margin-top: 0; }
+@media (max-width: 760px) { .refs { columns: 1; } }
+
+footer { border-top: 1.5px solid var(--ink); padding: 36px 0 60px; font-size: 14px; color: var(--ink-2); }
+footer .wrap { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+
+/* entrance */
+@media (prefers-reduced-motion: no-preference) {
+  .rise { opacity: 0; transform: translateY(14px); animation: rise .8s cubic-bezier(.2, .7, .2, 1) forwards; }
+  .d1 { animation-delay: .08s; } .d2 { animation-delay: .18s; } .d3 { animation-delay: .3s; } .d4 { animation-delay: .45s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <a class="mark" href="#"><i></i>MediaAttention</a>
+    <nav>
+      <a href="#why">Why attention</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#built">How it's built</a>
+      <a href="#start">Get started</a>
+      <a href="#research">Research</a>
+      <a class="gh" href="https://github.com/pranikz/MediaAttention">GitHub ↗</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <div>
+      <div class="eyebrow rise">Open-source · Apache-2.0 · runs on your laptop</div>
+      <h1 class="rise d1">See your ad the way <em>people</em> will.</h1>
+      <p class="lede rise d2">MediaAttention predicts where viewers look in an image or video ad, then scores it for focus, complexity, memorability and attention on your brand, product and call to action. Before a single impression is bought.</p>
+      <div class="ctas rise d3">
+        <a class="btn solid" href="#start">Get started</a>
+        <a class="btn" href="https://github.com/pranikz/MediaAttention">View on GitHub</a>
+      </div>
+      <div class="facts rise d4">
+        <div><b>~2 s</b>per image on an M3 laptop</div>
+        <div><b>30 s</b>for a 10-second video</div>
+        <div><b>0</b>uploads; your creatives stay local</div>
+      </div>
+    </div>
+
+    <figure class="specimen rise d2" style="margin:0">
+      <div class="stage" id="stage" aria-label="Example ad with an interactive attention fog">
+        <img id="layer" src="img/ad.jpg" alt="Example ad: NOVA running shoe with headline, body copy and a Shop Now button">
+        <div class="fog" id="fog"></div>
+        <div class="hint" id="hint">Move here: you are the eye tracker</div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-mode="you">Your eyes</button>
+        <button role="tab" aria-selected="false" data-mode="heat">Predicted heat</button>
+        <button role="tab" aria-selected="false" data-mode="fog">Predicted fog</button>
+        <button role="tab" aria-selected="false" data-mode="aois">AOIs</button>
+      </div>
+      <p class="caption" id="cap">Where did your eye go first? Wave across the ad to clear the fog, then compare with the model's prediction.</p>
+    </figure>
+  </div>
+
+  <section id="why">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">01 · Why attention</div>
+        <div>
+          <h2>An ad that isn't seen can't sell.</h2>
+          <p>Attention is the first gate in advertising: the brand, product and message have to be looked at before they can persuade or be remembered. Decades of eye-tracking research show it can be predicted, and that small design choices move it a lot.</p>
+        </div>
+      </div>
+      <div class="why">
+        <div><b>Size and placement steer the eye</b><p>In magazine-ad eye tracking, pictures capture attention regardless of size, text gains in proportion to its surface, and attention on the brand transfers to the rest of the ad.</p><cite>Pieters &amp; Wedel, 2004 [17]</cite></div>
+        <div><b>Saliency biases choice</b><p>When people decide quickly, products that are simply more visually salient get chosen more often, even over ones they prefer.</p><cite>Milosavljevic et al., 2012 [19]</cite></div>
+        <div><b>Complexity cuts both ways</b><p>Varied, well-organised design helps an ad stop people and get liked; dense, cluttered detail hurts both.</p><cite>Pieters, Wedel &amp; Batra, 2010 [18]</cite></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="metrics">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">02 · What is what</div>
+        <div>
+          <h2>Seven numbers, each with a job.</h2>
+          <p>Every metric below says what it measures, how MediaAttention computes it, and what to do about it. Nothing is a black box: the formulas are in the code and the README.</p>
+        </div>
+      </div>
+      <div class="metrics">
+        <article class="metric"><span class="num">01</span>
+          <h3>Attention heatmap &amp; fog</h3><div class="range">PIXEL MAP</div>
+          <dl><dt>What</dt><dd>Where viewers are predicted to fixate during the first seconds of free viewing. The fog map is the inverse: whatever stays fogged is likely missed.</dd>
+          <dt>How</dt><dd>DeepGaze IIE [1], an ensemble of deep networks trained on human fixations (SALICON [4], MIT1003 [5]), with a centre-bias prior [7].</dd>
+          <dt>Do</dt><dd class="do">If your logo or offer sits in fog, move it, enlarge it or give it contrast.</dd></dl></article>
+        <article class="metric"><span class="num">02</span>
+          <h3>Focus</h3><div class="range">0–100 · HIGHER = SHARPER</div>
+          <dl><dt>What</dt><dd>Whether attention concentrates on a few elements or scatters across the frame.</dd>
+          <dt>How</dt><dd>The share of the image needed to hold 80% of predicted attention, inverted to 0–100: an attention-dispersion measure as used in TV-ad eye tracking [20].</dd>
+          <dt>Do</dt><dd class="do">Low focus means competing elements. Cut one, or build a clear visual hierarchy.</dd></dl></article>
+        <article class="metric"><span class="num">03</span>
+          <h3>Cognitive demand</h3><div class="range">0–100 · MODERATE IS BEST</div>
+          <dl><dt>What</dt><dd>How much visual information a viewer has to process.</dd>
+          <dt>How</dt><dd>Mean Shannon entropy [15] of local 16×16 blocks, a simple clutter measure in the spirit of [16]. Per frame for video.</dd>
+          <dt>Do</dt><dd class="do">Too high: simplify copy and background. Too low: there may be nothing to hold the eye.</dd></dl></article>
+        <article class="metric"><span class="num">04</span>
+          <h3>AOI attention &amp; lift</h3><div class="range">% OF ATTENTION · LIFT ×</div>
+          <dl><dt>What</dt><dd>The share of attention on your brand, product, headline, body copy and CTA, plus lift: attention share ÷ area share.</dd>
+          <dt>How</dt><dd>Text roles come from OCR (PP-OCR models via RapidOCR [9]) and layout rules; logo and product come from open-vocabulary detection with OWLv2 [8].</dd>
+          <dt>Do</dt><dd class="do">Brand under ~5% of attention is a branding risk. A CTA with lift under 1 is being overlooked.</dd></dl></article>
+        <article class="metric"><span class="num">05</span>
+          <h3>Memory</h3><div class="range">0–100 · OPTIONAL</div>
+          <dl><dt>What</dt><dd>The predicted share of viewers who would recognise the creative after a brief exposure.</dd>
+          <dt>How</dt><dd>ResMem [10], trained on the LaMem [11] and MemCat [13] recognition datasets, building on the memorability work of [12].</dd>
+          <dt>Do</dt><dd class="do">Compare variants against each other within your corpus; absolute values cluster high.</dd></dl></article>
+        <article class="metric"><span class="num">06</span>
+          <h3>Impact score</h3><div class="range">1–10 · ≥7 READY</div>
+          <dl><dt>What</dt><dd>One pre-flight number that rolls up the metrics that matter.</dd>
+          <dt>How</dt><dd>Each metric scores 10 inside its target range and drops linearly outside; the impact score is the mean. Targets come from your own ads (below).</dd>
+          <dt>Do</dt><dd class="do">≥7 launch · 3.5–6.9 optimise · ≤3.4 rework. Read the per-metric scores to see why.</dd></dl></article>
+        <article class="metric" style="grid-column: 1 / -1"><span class="num">07</span>
+          <h3>Video: cuts, openings, endings &amp; tracking</h3><div class="range">PER FRAME · TIMELINE</div>
+          <dl><dt>What</dt><dd>Every metric over time; hard cuts; focus and memory in the first and last two seconds; attention on each AOI overall, while it's on screen, and how long it's visible.</dd>
+          <dt>How</dt><dd>Frames decoded with PyAV, cuts found from histogram jumps, attention smoothed over the last second so it lingers after a cut like real gaze. AOIs are detected at each shot start and tracked with pyramidal Lucas–Kanade optical flow [21, 22, 23].</dd>
+          <dt>Do</dt><dd class="do">Don't land the brand or offer right after a hard cut; memory dips there (the "doorway effect" [24]). Check the brand is on screen early and long enough.</dd></dl></article>
+      </div>
+
+      <div class="readout">
+        <img src="img/ad-aois.jpg" alt="Predicted heatmap on the example ad with boxes around the brand, headline, body copy and CTA">
+        <div>
+          <div class="eyebrow" style="margin-bottom:14px">Example readout · ad.png</div>
+          <div class="score"><b>7.1</b><span>/ 10 · ready to launch, but the brand is under-seen</span></div>
+          <table>
+            <thead><tr><th>AOI</th><th>Attention</th><th>Area</th><th>Lift</th></tr></thead>
+            <tbody>
+              <tr><td>Headline</td><td class="n bar-cell">28.7%<i style="width:57%"></i></td><td class="n">7.5%</td><td class="n">3.8×</td></tr>
+              <tr><td>Body copy</td><td class="n bar-cell">26.8%<i style="width:54%"></i></td><td class="n">3.2%</td><td class="n">8.3×</td></tr>
+              <tr><td>CTA</td><td class="n bar-cell">17.7%<i style="width:35%"></i></td><td class="n">2.9%</td><td class="n">6.1×</td></tr>
+              <tr><td>Brand</td><td class="n bar-cell">4.1%<i style="width:8%"></i></td><td class="n">0.7%</td><td class="n">5.9×</td></tr>
+            </tbody>
+          </table>
+          <p style="color:var(--ink-2);font-size:15px;margin-top:16px">The NOVA logo punches above its size (5.9× lift) but takes only 4% of attention, so its brand score is 3.5/10. The obvious fix is a bigger wordmark, not a louder headline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="built">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">03 · How it's built</div>
+        <div>
+          <h2>Open models, honest maths.</h2>
+          <p>MediaAttention stitches proven, openly published models together with transparent metrics. Each stage is small enough to read in one sitting and swap out when something better appears.</p>
+        </div>
+      </div>
+      <ol class="pipe">
+        <li><h4>Predict attention</h4><p>A fixation-density map for the whole frame, calibrated to how people actually look.</p><div class="tech">DeepGaze IIE [1] · spectral-residual fallback [3]</div></li>
+        <li><h4>Read the layout</h4><p>OCR finds every line of text; size and button-shaped patches sort it into headline, body and CTA.</p><div class="tech">RapidOCR / PP-OCR [9]</div></li>
+        <li><h4>Find brand &amp; product</h4><p>Open-vocabulary detection scores each role separately, so the logo can't steal the button's box.</p><div class="tech">OWLv2 [8]</div></li>
+        <li><h4>Score</h4><p>Focus, cognitive demand and per-AOI attention are pure numpy over the heatmap; memory is a separate network.</p><div class="tech">numpy · ResMem [10]</div></li>
+        <li><h4>Follow video</h4><p>Decode every frame, detect cuts, smooth attention over a one-second window, track AOIs within each shot.</p><div class="tech">PyAV · OpenCV LK flow [21–23]</div></li>
+        <li><h4>Calibrate</h4><p><span class="mono">bench</span> scores your own ads and sets each target to the top 20% (middle 50% for complexity).</p><div class="tech">percentiles · per category</div></li>
+        <li><h4>Roll up</h4><p>Per-metric 1–10 scores against those targets, averaged into the impact score, skipping what's absent.</p><div class="tech">impact_score()</div></li>
+        <li><h4>Show it</h4><p>Heatmap, fog and AOI overlays, a heatmap video, a timeline, JSON for pipelines, and a local web UI.</p><div class="tech">Pillow · Gradio [25]</div></li>
+      </ol>
+
+      <div style="margin-top:64px">
+        <div class="eyebrow" style="margin-bottom:16px">Video example · two shots, cut at 3.0 s</div>
+        <div class="film">
+          <figure><img src="img/vid-1.jpg" alt="Shot one at 0.5 seconds"><figcaption>0.5 s</figcaption></figure>
+          <figure><img src="img/vid-4.jpg" alt="Shot one at 2.0 seconds, boxes following the zoom"><figcaption>2.0 s · boxes follow the zoom</figcaption></figure>
+          <figure><img src="img/vid-7.jpg" alt="Shot two at 3.5 seconds, AOIs re-detected"><figcaption>3.5 s · new shot, AOIs re-detected</figcaption></figure>
+          <figure><img src="img/vid-10.jpg" alt="Shot two at 5.0 seconds"><figcaption>5.0 s</figcaption></figure>
+        </div>
+        <div class="chart">
+          <div class="legend"><span style="color:var(--heat)">Memory</span><span style="color:var(--ink)">Focus</span><span style="color:var(--gaze)">Cognitive demand</span><span style="color:var(--ink-3)">┆ hard cut</span></div>
+          <svg id="timeline" viewBox="0 0 800 220" role="img" aria-label="Timeline: memory drops from about 97 to 86 at the cut at 3 seconds, focus stays near 78, cognitive demand stays under 11"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="calibrate">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">04 · Calibrate</div>
+        <div>
+          <h2>Scored against your own best work.</h2>
+          <p>Generic targets lie: a luxury OOH poster and a TikTok ad shouldn't chase the same complexity. Point <span class="mono">bench</span> at 30+ ads from one category, and every metric's target becomes the band your top performers hit. Do this once per industry or use case and score every new creative against it.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step"><h4>1 · Collect</h4><p>One folder per category: FMCG social, auto OOH, fintech display…</p></div>
+        <div class="step"><h4>2 · Bench</h4><p>Command line or the web UI's Calibrate tab. You get <span class="mono">benchmarks.json</span> and per-asset scores.</p></div>
+        <div class="step"><h4>3 · Score new work</h4><p>Pass the targets with <span class="mono">--benchmarks</span>, or let the UI load them automatically.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">05 · Get started</div>
+        <div>
+          <h2>Three commands.</h2>
+          <p>Python 3.10+. Works on CPU, NVIDIA GPUs and Apple Silicon. Model weights download on first use.</p>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step"><h4>Install</h4>
+<pre>git clone https://github.com/pranikz/MediaAttention
+cd MediaAttention
+pip install -e ".[deepgaze,aoi,video,ui]"
+<span class="c"># optional, non-commercial:</span>
+pip install -e ".[memory]"</pre></div>
+        <div class="step"><h4>Web UI</h4>
+<pre>mediaattention ui
+<span class="c"># → http://localhost:7860</span>
+<span class="c"># Analyse tab: drop an ad</span>
+<span class="c"># Calibrate tab: drop a batch</span></pre></div>
+        <div class="step"><h4>Command line</h4>
+<pre>mediaattention ad.png --aoi auto \
+  --product "a running shoe"
+mediaattention spot.mp4 --aoi auto
+mediaattention bench ads/fmcg/ \
+  --aoi auto --out bench/</pre></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="limits">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">06 · Honest limits</div>
+        <div><h2>What it won't tell you.</h2><p>Predictions are a fast first filter, not a substitute for testing with real people when the stakes are high.</p></div>
+      </div>
+      <ul class="limits">
+        <li><b>Trained on natural images, not ads.</b> The attention model learned from public eye-tracking datasets; it can be less sharp on text-heavy creatives.</li>
+        <li><b>No emotion scores yet.</b> Engagement, trust and intent need human response data that hasn't been released openly. They're on the roadmap, not faked.</li>
+        <li><b>Layout rules, not a layout model.</b> A headline smaller than its body copy, a ghost button or a centred logo can fool AOI detection; pass your own boxes then.</li>
+        <li><b>Targets are only as good as your corpus.</b> <span class="mono">bench</span> ranks ads by their own scores; rank by real KPIs (CTR, recall) when you have them.</li>
+        <li><b>Memory scores cluster high</b> and ResMem's weights are <b>non-commercial</b>. It's an optional extra for that reason.</li>
+        <li><b>Video has no audio.</b> Sound, voice-over and music drive attention in video and aren't modelled.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="research">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">07 · Research &amp; credits</div>
+        <div>
+          <h2>Standing on these shoulders.</h2>
+          <p>MediaAttention exists because these researchers published their methods, data and models. If you use it in your work, please cite the papers behind the parts you rely on.</p>
+        </div>
+      </div>
+
+      <div class="refs-group">Attention &amp; saliency</div>
+      <ol class="refs">
+        <li>Linardos, A., Kümmerer, M., Press, O. &amp; Bethge, M. (2021). DeepGaze IIE: Calibrated prediction in and out-of-domain for state-of-the-art saliency modeling. <i>ICCV</i>. <a href="https://arxiv.org/abs/2105.12441">arXiv:2105.12441</a><span class="used">used: attention heatmap</span></li>
+        <li>Kümmerer, M., Wallis, T. S. A. &amp; Bethge, M. (2018). Saliency benchmarking made easy: Separating models, maps and metrics. <i>ECCV</i>. <a href="https://arxiv.org/abs/1704.08615">arXiv:1704.08615</a><span class="used">used: evaluation methodology</span></li>
+        <li>Hou, X. &amp; Zhang, L. (2007). Saliency detection: A spectral residual approach. <i>CVPR</i>. <a href="https://doi.org/10.1109/CVPR.2007.383267">doi</a><span class="used">used: lightweight fallback model</span></li>
+        <li>Jiang, M., Huang, S., Duan, J. &amp; Zhao, Q. (2015). SALICON: Saliency in context. <i>CVPR</i>. <a href="https://doi.org/10.1109/CVPR.2015.7298710">doi</a><span class="used">training data behind DeepGaze IIE</span></li>
+        <li>Judd, T., Ehinger, K., Durand, F. &amp; Torralba, A. (2009). Learning to predict where humans look. <i>ICCV</i>. <a href="https://doi.org/10.1109/ICCV.2009.5459462">doi</a><span class="used">training data behind DeepGaze IIE</span></li>
+        <li>Bylinskii, Z., Judd, T., Oliva, A., Torralba, A. &amp; Durand, F. (2019). What do different evaluation metrics tell us about saliency models? <i>IEEE TPAMI</i>, 41(3). <a href="https://arxiv.org/abs/1604.03605">arXiv:1604.03605</a><span class="used">used: metric choice (CC, SIM, KLD)</span></li>
+        <li>Tatler, B. W. (2007). The central fixation bias in scene viewing: Selecting an optimal viewing position independently of motor biases and image feature distributions. <i>Journal of Vision</i>, 7(14). <a href="https://doi.org/10.1167/7.14.4">doi</a><span class="used">used: centre-bias prior</span></li>
+      </ol>
+
+      <div class="refs-group">Layout, text &amp; objects</div>
+      <ol class="refs" start="8" style="counter-reset: r 7">
+        <li>Minderer, M., Gritsenko, A. &amp; Houlsby, N. (2023). Scaling open-vocabulary object detection (OWLv2). <i>NeurIPS</i>. <a href="https://arxiv.org/abs/2306.09683">arXiv:2306.09683</a><span class="used">used: logo &amp; product detection</span></li>
+        <li>Du, Y. et al. (2020). PP-OCR: A practical ultra lightweight OCR system. <a href="https://arxiv.org/abs/2009.09941">arXiv:2009.09941</a><span class="used">used: text detection (via RapidOCR)</span></li>
+      </ol>
+
+      <div class="refs-group">Memorability</div>
+      <ol class="refs" style="counter-reset: r 9">
+        <li>Needell, C. D. &amp; Bainbridge, W. A. (2022). Embracing new techniques in deep learning for estimating image memorability. <i>Computational Brain &amp; Behavior</i>, 5. <a href="https://doi.org/10.1007/s42113-022-00126-5">doi</a><span class="used">used: memory score (ResMem)</span></li>
+        <li>Khosla, A., Raju, A. S., Torralba, A. &amp; Oliva, A. (2015). Understanding and predicting image memorability at a large scale (LaMem). <i>ICCV</i>. <a href="https://doi.org/10.1109/ICCV.2015.275">doi</a><span class="used">training data behind ResMem</span></li>
+        <li>Isola, P., Xiao, J., Torralba, A. &amp; Oliva, A. (2011). What makes an image memorable? <i>CVPR</i>. <a href="https://doi.org/10.1109/CVPR.2011.5995721">doi</a><span class="used">background: the memory game protocol</span></li>
+        <li>Goetschalckx, L. &amp; Wagemans, J. (2019). MemCat: a new category-based image set quantified on memorability. <i>PeerJ</i>, 7. <a href="https://doi.org/10.7717/peerj.8169">doi</a><span class="used">training data behind ResMem</span></li>
+      </ol>
+
+      <div class="refs-group">Complexity &amp; advertising science</div>
+      <ol class="refs" style="counter-reset: r 13">
+        <li>Itti, L., Koch, C. &amp; Niebur, E. (1998). A model of saliency-based visual attention for rapid scene analysis. <i>IEEE TPAMI</i>, 20(11). <a href="https://doi.org/10.1109/34.730558">doi</a><span class="used">background: computational saliency</span></li>
+        <li>Shannon, C. E. (1948). A mathematical theory of communication. <i>Bell System Technical Journal</i>, 27. <a href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x">doi</a><span class="used">used: cognitive demand (entropy)</span></li>
+        <li>Rosenholtz, R., Li, Y. &amp; Nakano, L. (2007). Measuring visual clutter. <i>Journal of Vision</i>, 7(2). <a href="https://doi.org/10.1167/7.2.17">doi</a><span class="used">background: clutter as a load measure</span></li>
+        <li>Pieters, R. &amp; Wedel, M. (2004). Attention capture and transfer in advertising: Brand, pictorial, and text-size effects. <i>Journal of Marketing</i>, 68(2). <a href="https://doi.org/10.1509/jmkg.68.2.36.27794">doi</a><span class="used">used: why AOI attention matters</span></li>
+        <li>Pieters, R., Wedel, M. &amp; Batra, R. (2010). The stopping power of advertising: Measures and effects of visual complexity. <i>Journal of Marketing</i>, 74(5). <a href="https://doi.org/10.1509/jmkg.74.5.048">doi</a><span class="used">used: two-sided complexity target</span></li>
+        <li>Milosavljevic, M., Navalpakkam, V., Koch, C. &amp; Rangel, A. (2012). Relative visual saliency differences induce sizable bias in consumer choice. <i>Journal of Consumer Psychology</i>, 22(1). <a href="https://doi.org/10.1016/j.jcps.2011.10.002">doi</a><span class="used">background: saliency drives choice</span></li>
+        <li>Teixeira, T., Wedel, M. &amp; Pieters, R. (2010). Moment-to-moment optimal branding in TV commercials: Preventing avoidance by pulsing. <i>Marketing Science</i>, 29(5). <a href="https://doi.org/10.1287/mksc.1100.0567">doi</a><span class="used">used: attention dispersion (focus)</span></li>
+      </ol>
+
+      <div class="refs-group">Video &amp; tooling</div>
+      <ol class="refs" style="counter-reset: r 19">
+        <li>Lucas, B. D. &amp; Kanade, T. (1981). An iterative image registration technique with an application to stereo vision. <i>IJCAI</i>.<span class="used">used: AOI tracking</span></li>
+        <li>Shi, J. &amp; Tomasi, C. (1994). Good features to track. <i>CVPR</i>. <a href="https://doi.org/10.1109/CVPR.1994.323794">doi</a><span class="used">used: tracking points</span></li>
+        <li>Bouguet, J.-Y. (2000). Pyramidal implementation of the Lucas–Kanade feature tracker. Intel Corporation.<span class="used">used: pyramidal flow (OpenCV)</span></li>
+        <li>Radvansky, G. A., Krawietz, S. A. &amp; Tamplin, A. K. (2011). Walking through doorways causes forgetting: Further explorations. <i>Quarterly Journal of Experimental Psychology</i>, 64(8). <a href="https://doi.org/10.1080/17470218.2011.571267">doi</a><span class="used">used: cut guidance</span></li>
+        <li>Abid, A. et al. (2019). Gradio: Hassle-free sharing and testing of ML models in the wild. <a href="https://arxiv.org/abs/1906.02569">arXiv:1906.02569</a><span class="used">used: web UI</span></li>
+      </ol>
+      <p style="font-size:14px;color:var(--ink-3);margin-top:28px">Also built on PyTorch, OpenCV, PyAV, Hugging Face Transformers, RapidOCR, NumPy, SciPy and Pillow. Model weights keep their own licences; ResMem is non-commercial.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div><b style="color:var(--ink)">MediaAttention</b> · code under Apache-2.0 · <a href="https://github.com/pranikz/MediaAttention">github.com/pranikz/MediaAttention</a></div>
+    <div>Example creatives on this page are synthetic.</div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const stage = document.getElementById("stage"), fog = document.getElementById("fog"), img = document.getElementById("layer");
+  const hint = document.getElementById("hint"), cap = document.getElementById("cap");
+  const modes = {
+    you: ["img/ad.jpg", "Where did your eye go first? Wave across the ad to clear the fog, then compare with the model's prediction."],
+    heat: ["img/ad-heat.jpg", "Predicted attention: red is where most viewers look. The CTA, headline and body copy win; the shoe barely registers."],
+    fog: ["img/ad-fog.jpg", "Predicted fog: anything still fogged is likely missed. The product and most of the background vanish."],
+    aois: ["img/ad-aois.jpg", "Auto-detected areas of interest, each labelled with its share of total attention."],
+  };
+  let mode = "you", r = 0, target = 0, raf;
+  const grow = () => { r += (target - r) * 0.18; fog.style.setProperty("--r", r.toFixed(1) + "px"); if (Math.abs(target - r) > .5) raf = requestAnimationFrame(grow); };
+  const move = (e) => {
+    if (mode !== "you") return;
+    const b = stage.getBoundingClientRect();
+    fog.style.setProperty("--x", (e.clientX - b.left) + "px");
+    fog.style.setProperty("--y", (e.clientY - b.top) + "px");
+    target = b.width * 0.2; hint.style.opacity = 0;
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(grow);
+  };
+  stage.addEventListener("pointermove", move);
+  stage.addEventListener("pointerdown", move);
+  stage.addEventListener("pointerleave", () => { target = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(grow); });
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
+    img.src = modes[mode][0]; cap.textContent = modes[mode][1];
+    fog.style.opacity = mode === "you" ? 1 : 0; hint.style.opacity = mode === "you" ? 1 : 0;
+  }));
+  Object.values(modes).forEach(([src]) => { const i = new Image(); i.src = src; });
+
+  // timeline from the example video's scores.json
+  const data = {"cuts": [3.0], "timeline": [[0.0,78.3,7.8,97.2],[0.52,78.0,8.8,96.6],[1.0,77.4,8.9,96.4],[1.52,77.0,9.5,96.9],[2.0,76.6,9.7,96.6],[2.52,76.2,10.1,97.3],[3.0,74.4,5.1,86.2],[3.52,80.2,6.6,84.2],[4.0,80.0,6.7,87.4],[4.52,79.8,6.9,86.9],[5.0,79.4,6.9,88.0],[5.52,79.0,7.3,89.2]]};
+  const svg = document.getElementById("timeline"), W = 800, H = 220, L = 34, B = 26, T = 8, xmax = 6;
+  const x = (t) => L + (t / xmax) * (W - L - 8), y = (v) => T + (1 - v / 100) * (H - T - B);
+  let s = "";
+  for (const v of [0, 25, 50, 75, 100]) s += `<line x1="${L}" x2="${W - 8}" y1="${y(v)}" y2="${y(v)}" stroke="#e6dfd0"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-family="JetBrains Mono" font-size="11" fill="#8a8476">${v}</text>`;
+  for (let t = 0; t <= xmax; t++) s += `<text x="${x(t)}" y="${H - 6}" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#8a8476">${t}s</text>`;
+  for (const c of data.cuts) s += `<line x1="${x(c)}" x2="${x(c)}" y1="${T}" y2="${H - B}" stroke="#8a8476" stroke-dasharray="3 4"/>`;
+  [[1, "#16140f"], [2, "#2f7d4f"], [3, "#e2401c"]].forEach(([i, col]) => {
+    const d = data.timeline.map((p, k) => `${k ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[i]).toFixed(1)}`).join("");
+    s += `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round"/>`;
+  });
+  svg.innerHTML = s;
+})();
+</script>
+</body>
+</html>
