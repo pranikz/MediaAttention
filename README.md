@@ -1,6 +1,6 @@
 # MediaAttention
 
-**Site:** https://pranikz.github.io/MediaAttention/ · **Model on Hugging Face:** https://huggingface.co/pranikz/MediaAttention
+**Site:** https://pranikz.github.io/MediaAttention/ · **Model on Hugging Face:** https://huggingface.co/pranikz/MediaAttention · **Research report (PDF):** [docs/research/MediaAttention-report.pdf](docs/research/MediaAttention-report.pdf)
 
 Open-source predicted attention for ads and media. Give it an image or video creative and it predicts where people will look, then scores it:
 
@@ -143,7 +143,7 @@ What this means:
 - **DeepGaze MSDB is the most accurate** on every metric, ~0.06 CC ahead, but 70× slower and with no licence file. DeepGaze IIE stays available as an option (`--model deepgaze`).
 - **Text-heavy layouts are the hardest case for every model.** This is where ad-specific training data would help most.
 
-An ad and poster benchmark on UEyes (CHI 2023) is in progress.
+The full write-up, including a review of 15 commercial tools and what their accuracy claims actually measure, is in the [research report (PDF)](docs/research/MediaAttention-report.pdf). An ad and poster benchmark on UEyes (CHI 2023) is in progress.
 
 ## Honest limitations
 
