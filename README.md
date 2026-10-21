@@ -121,6 +121,50 @@ from mediaattention import score
 heat, report = score(Image.open("ad.png"))  # model="unisal" by default; "deepgaze" or "spectral" also work
 ```
 
+## Architecture
+
+### Pipeline
+
+```mermaid
+flowchart LR
+  IN["Ad image<br/>or video frames"] --> ATT["Attention model<br/>(UNISAL)"]
+  ATT --> HEAT["Fixation density<br/>heatmap + fog"]
+  IN --> OCR["OCR<br/>(RapidOCR / PP-OCR)"] --> ROLES["Layout rules<br/>headline · body · CTA"]
+  IN --> OWL["OWLv2<br/>logo · product"]
+  ROLES --> AOI["AOI boxes"]
+  OWL --> AOI
+  HEAT --> MET["Focus · cognitive demand<br/>AOI attention % · lift"]
+  AOI --> MET
+  IN --> MEM["ResMem<br/>memory (optional)"] --> MET
+  MET --> IMP["Impact score 1–10<br/>vs targets from bench"]
+  BENCH["bench: your ads<br/>(optional KPIs)"] --> IMP
+```
+
+Video adds cut detection (histogram jumps on every frame), optical-flow tracking of AOIs within each shot, and UNISAL's recurrent video mode.
+
+### Attention model: UNISAL (3.7M parameters)
+
+```mermaid
+flowchart TB
+  X["Input: RGB, resized to a 32-px grid<br/>(e.g. 256×416), ImageNet-normalised"] --> ENC["MobileNetV2 encoder · 2.2M params"]
+  ENC -- "1/32 scale · 1280 ch" --> CAT["⊕ 16 learned Gaussian prior maps<br/>(where people tend to look)"]
+  CAT --> PC["1×1 conv + BN → 256 ch"]
+  PC --> RNN["Bypass-RNN: ConvGRU, 256 ch · 0.43M params<br/>video only: state carries across frames"]
+  PC --> ADD(("+"))
+  RNN -- "residual" --> ADD
+  ADD --> UP1["upsample ×2"]
+  ENC -- "1/16 scale · 160 ch → 128" --> UP1
+  UP1 --> IR1["inverted residual block · upsample ×2"]
+  ENC -- "1/8 scale · 64 ch" --> IR1
+  IR1 --> IR2["inverted residual block → 64 ch"]
+  IR2 --> HEAD["domain-specific 1×1 adaptation conv<br/>→ resize to input → learned 41×41 smoothing"]
+  HEAD --> OUT["log-softmax → fixation density map<br/>(sums to 1 over the image)"]
+```
+
+UNISAL (Droste et al., ECCV 2020) was trained jointly on image (SALICON) and video (DHF1K, Hollywood-2, UCF Sports) eye-tracking data. Its batch norm, prior maps, adaptation and smoothing are domain-specific, so one network serves both modes:
+- **Images** use the SALICON branch and skip the recurrent block.
+- **Video** uses the DHF1K branch, with the ConvGRU carrying attention from frame to frame.
+
 ## Run your own study
 
 Every commercial attention tool rests on a private panel. MediaAttention ships the panel kit instead: a browser study you can send to anyone, with no server and no uploads.

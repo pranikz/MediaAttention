@@ -147,6 +147,18 @@ td.n { font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
 @media (max-width: 1000px) { .pipe { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .pipe { grid-template-columns: 1fr; } }
 
+/* architecture */
+.arch { display: grid; grid-template-columns: 1.15fr .85fr; gap: 24px; margin-top: 56px; }
+.arch svg .t { font: 600 14px "Archivo", sans-serif; fill: var(--paper); }
+.arch svg .s { font: 12px "Archivo", sans-serif; fill: var(--muted); }
+.arch .box.pad { padding: 24px; }
+.arch h4 { font-variation-settings: "wdth" 62; font-weight: 800; text-transform: uppercase; font-size: 28px; line-height: .95; margin: 0 0 12px; }
+.arch p, .arch li { color: var(--muted); font-size: 15px; }
+.arch ul { padding-left: 18px; margin: 0; }
+.arch li { margin-bottom: 8px; }
+.arch b { color: var(--paper); font-weight: 500; }
+@media (max-width: 1000px) { .arch { grid-template-columns: 1fr; } }
+
 /* video */
 .film { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 16px; }
 .film figure { margin: 0; }
@@ -352,6 +364,20 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
         <li class="frame reveal"><span class="name">impact</span><div class="box"><h4>Roll up</h4><p>Per-metric 1–10 scores against those targets, averaged, skipping what's absent.</p><div class="tech">impact_score()</div></div></li>
         <li class="frame reveal"><span class="name">outputs</span><div class="box"><h4>Show it</h4><p>Heatmap, fog and AOI overlays, a heatmap video, a timeline, JSON and a local web UI.</p><div class="tech">Pillow · Gradio [25]</div></div></li>
       </ol>
+
+      <div class="arch">
+        <div class="frame reveal"><span class="name">attention model · UNISAL (Droste et al., ECCV 2020)</span><div class="box" style="padding:18px"><svg viewBox="0 0 760 640" width="100%" role="img" aria-label="UNISAL architecture: MobileNetV2 encoder with Gaussian priors, a ConvGRU used only for video, a decoder with skip connections from the 1/16 and 1/8 scales, domain-specific adaptation and smoothing, and a log-softmax fixation density output"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8b8e98"/></marker></defs><rect x="40" y="20" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="44" class="t">Input image / frame</text><text x="54" y="63" class="s">RGB on a 32-px grid · ImageNet-normalised</text><rect x="40" y="110" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="134" class="t">MobileNetV2 encoder</text><text x="54" y="153" class="s">2.2M params · features at 1/8, 1/16, 1/32</text><rect x="40" y="200" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="224" class="t">⊕ 16 Gaussian prior maps</text><text x="54" y="243" class="s">learned 'where people look' priors</text><rect x="40" y="290" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="314" class="t">1×1 conv + BN → 256 ch</text><text x="54" y="333" class="s">post-encoder projection</text><rect x="400" y="290" width="320" height="56" fill="#101216" stroke="#2a2d35" stroke-dasharray="5 4"/><text x="414" y="314" class="t">Bypass-RNN · ConvGRU</text><text x="414" y="333" class="s">video only · state carried across frames</text><rect x="40" y="380" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="404" class="t">Decoder ↑×2, ↑×2</text><text x="54" y="423" class="s">inverted-residual blocks + skips</text><rect x="40" y="470" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="494" class="t">Domain adaptation + 41×41 smoothing</text><text x="54" y="513" class="s">SALICON branch for images, DHF1K for video</text><rect x="40" y="560" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="584" class="t">log-softmax → fixation density</text><text x="54" y="603" class="s">sums to 1 over the image</text><line x1="190" y1="76" x2="190" y2="108" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="166" x2="190" y2="198" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="256" x2="190" y2="288" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="346" x2="190" y2="378" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="436" x2="190" y2="468" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="526" x2="190" y2="558" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="340" y1="318" x2="398" y2="318" stroke="#8b8e98" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/><path d="M560 346 L560 408 L342 408" fill="none" stroke="#8b8e98" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/><text x="568" y="384" class="s">+ residual</text><path d="M340 130 L370 130 L370 392 L342 392" fill="none" stroke="#5c5f69" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ah)"/><path d="M340 150 L384 150 L384 420 L342 420" fill="none" stroke="#5c5f69" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ah)"/><text x="392" y="140" class="s">skips: 1/16 (160→128 ch), 1/8 (64 ch)</text><text x="400" y="590" class="s">3.7M parameters in total</text></svg></div></div>
+        <div class="frame reveal"><span class="name">how to read it</span><div class="box pad">
+          <h4>One network, images and video</h4>
+          <ul>
+            <li><b>Encoder:</b> a MobileNetV2 reads the ad at three scales. Sixteen learned Gaussian maps add a prior for where people tend to look first.</li>
+            <li><b>Bypass-RNN:</b> for video, a ConvGRU carries attention from frame to frame, so it lingers after a cut like real gaze. For still images it is skipped.</li>
+            <li><b>Decoder:</b> upsamples twice, mixing in finer encoder features through skip connections, so small text and buttons stay sharp.</li>
+            <li><b>Domain heads:</b> batch norm, adaptation and a learned 41×41 smoothing kernel are specific to each training set: SALICON for images, DHF1K for video.</li>
+            <li><b>Output:</b> a log-softmax over pixels, a probability map of where the next fixation lands.</li>
+          </ul>
+        </div></div>
+      </div>
 
       <div class="frame reveal" style="margin-top:56px">
         <span class="name">ad.mp4 · two shots, cut at 3.0 s</span>
