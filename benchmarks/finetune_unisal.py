@@ -51,6 +51,7 @@ def main():
     ap.add_argument("--limit", type=int, help="first N training images (smoke test)")
     ap.add_argument("--out", default=str(run.BENCH / "models/unisal_ueyes.pth"))
     ap.add_argument("--device", help="cpu, mps or cuda (default: best available)")
+    ap.add_argument("--ckpt", help="resume checkpoint, saved after every epoch (default: <out>.ckpt)")
     a = ap.parse_args()
     dev = a.device or device()
     items, _ = run.load_ueyes(split="train")
@@ -99,11 +100,20 @@ def main():
         train_mode()
         return float(np.mean(kls)), float(np.mean(ccs))
 
-    best = evaluate()
-    print(f"epoch 0 (SALICON weights): val KLD {best[0]:.3f}  CC {best[1]:.3f}", flush=True)
+    # sessions can be cut off (Colab free tier): everything needed to continue is saved after each epoch
+    ckpt = Path(a.ckpt or a.out + ".ckpt")
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-    torch.save(model.state_dict(), a.out)
-    for epoch in range(1, a.epochs + 1):
+    if ckpt.exists():
+        c = torch.load(ckpt, map_location=dev)
+        model.load_state_dict(c["model"])
+        opt.load_state_dict(c["opt"])
+        start, best = c["epoch"] + 1, tuple(c["best"])
+        print(f"resuming after epoch {c['epoch']} (best val CC {best[1]:.3f})", flush=True)
+    else:
+        start, best = 1, evaluate()
+        print(f"epoch 0 (SALICON weights): val KLD {best[0]:.3f}  CC {best[1]:.3f}", flush=True)
+        torch.save(model.state_dict(), a.out)
+    for epoch in range(start, a.epochs + 1):
         t0 = time.time()
         random.shuffle(train)
         for it in train:
@@ -118,6 +128,7 @@ def main():
         if better:
             best = (kl, cc)
             torch.save(model.state_dict(), a.out)
+        torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "epoch": epoch, "best": best}, ckpt)
         print(f"epoch {epoch}: val KLD {kl:.3f}  CC {cc:.3f}  ({time.time() - t0:.0f} s){'  saved' if better else ''}", flush=True)
     print(f"best val CC {best[1]:.3f} -> {a.out}")
 

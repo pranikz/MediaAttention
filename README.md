@@ -171,7 +171,7 @@ UNISAL (Droste et al., ECCV 2020) was trained jointly on image (SALICON) and vid
 - **Data:** the UEyes training split (Jiang et al., CHI 2023, CC BY 4.0). It has 1,872 posters, ads, mobile and desktop UIs and webpages, with eye tracking from 62 participants; 10% is held out to pick the epoch. The UEyes test split and FiWI were never touched.
 - **Loss:** KL divergence − CC against the fixation density.
 - **Training:** AdamW, lr 3e-5, batch norm frozen (batch size 1), 8 epochs on an M3 Pro (~25 min). The best epoch was 5, with held-out CC going from 0.502 to 0.769.
-- **Script:** [`benchmarks/finetune_unisal.py`](benchmarks/finetune_unisal.py).
+- **Script:** [`benchmarks/finetune_unisal.py`](benchmarks/finetune_unisal.py). To train on a free GPU, use the [Colab notebook](https://colab.research.google.com/github/pranikz/MediaAttention/blob/main/benchmarks/colab_finetune.ipynb), which resumes after a disconnect.
 - **Weights:** [huggingface.co/pranikz/MediaAttention-Ads](https://huggingface.co/pranikz/MediaAttention-Ads).
 
 Video still uses the stock UNISAL video weights: there is no open ad-video eye-tracking set to tune them on yet.
