@@ -8,7 +8,7 @@ requires-python = ">=3.10"
 dependencies = ["numpy", "scipy", "pillow"]
 
 [project.optional-dependencies]
-deepgaze = ["torch", "torchvision", "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze"]
+deepgaze = ["torch", "torchvision", "clip @ git+https://github.com/openai/CLIP", "einops", "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze"]
 aoi = ["torch", "transformers"]
 dev = ["pytest"]
 

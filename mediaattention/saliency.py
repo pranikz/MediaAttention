@@ -32,13 +32,13 @@ def center_bias(shape, sigma=0.3):
 @cache
 def _deepgaze(device):
     import deepgaze_pytorch
-    return deepgaze_pytorch.DeepGazeIIE(pretrained=True).to(device).eval()
+    return deepgaze_pytorch.DeepGazeIIE(pretrained=True).float().to(device).eval()  # MPS has no float64
 
 
 def deepgaze(img, device=None):
     """DeepGaze IIE (Linardos et al. 2021), weights fetched by deepgaze_pytorch on first use."""
     import torch
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = device or ("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     s = min(1.0, 1024 / max(img.size))
     x = np.asarray(img.convert("RGB").resize((round(img.width * s), round(img.height * s))), dtype=np.float32)
     with torch.no_grad():

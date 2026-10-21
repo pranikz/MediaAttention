@@ -19,7 +19,7 @@ def detect(img, threshold=0.2):
     with torch.no_grad():
         out = model(**proc(text=[list(PROMPTS.values())], images=img, return_tensors="pt"))
     side = max(img.size)  # OWLv2 pads to a square, so boxes are in padded-square pixels
-    res = proc.post_process_object_detection(out, threshold=threshold, target_sizes=torch.tensor([[side, side]]))[0]
+    res = proc.post_process_grounded_object_detection(out, threshold=threshold, target_sizes=torch.tensor([[side, side]]))[0]
     names, best = list(PROMPTS), {}
     for score, label, box in zip(res["scores"].tolist(), res["labels"].tolist(), res["boxes"].tolist()):
         if score > best.get(names[label], (0,))[0]:
