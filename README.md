@@ -1,6 +1,6 @@
 # MediaAttention
 
-Open-source predicted attention for ads and media. Give it a creative and it predicts where people will look, then scores it:
+Open-source predicted attention for ads and media. Give it an image or video creative and it predicts where people will look, then scores it:
 
 - **Attention heatmap and fog map**: where the eye lands in the first seconds
 - **Focus** (0–100): attention on a few elements (high) vs. scattered everywhere (low)
@@ -16,6 +16,7 @@ It's an open alternative to proprietary "neuro-prediction" tools. The methods ar
 pip install -e .                 # core: spectral-residual fallback, no ML deps
 pip install -e ".[deepgaze]"     # DeepGaze IIE attention model (recommended)
 pip install -e ".[aoi]"          # automatic AOI detection (OCR + OWLv2)
+pip install -e ".[video]"        # video support (PyAV)
 ```
 
 ## Use
@@ -38,6 +39,18 @@ This writes `report/heat.png`, `report/fog.png`, `report/aois.png` (heatmap with
 
 The example values are illustrative.
 
+### Video
+
+```bash
+mediaattention ad.mp4 --aoi auto --product "a running shoe" --fps 2 --out report/
+```
+
+This writes `report/heat.mp4` (the heatmap and AOIs on every scored frame) and `report/scores.json`. The JSON has a summary plus a per-frame `timeline`:
+
+- `cuts`: hard scene cuts in seconds. Key messages placed right after a cut are easily forgotten.
+- `focus_start` / `focus_end`: Focus over the first and last 2 seconds.
+- Per AOI: `total_attention` (share over the whole video), `relative_attention` (share while on screen) and `availability_s` (seconds on screen).
+
 You can also pass your own AOIs (`--aoi aois.json`, as `[{"label": "brand", "box": [x0, y0, x1, y1]}]` in 0–1 coords) and your own recommended ranges (`--benchmarks ranges.json`, as `{"focus": [60, 100]}`).
 
 From Python:
@@ -57,6 +70,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 | Cognitive Demand | Mean Shannon entropy of 16×16 blocks of the grayscale image (32 levels), normalized to 0–100. |
 | AOI detection | OCR (RapidOCR) reads every text line. A short line on a solid colour patch is the CTA, and the box grows out to the button's edges. The largest text is the headline, and the rest is body. Logo and product come from OWLv2 zero-shot detection (`--product` says what to look for). If OWLv2 is unsure about the logo, a short text line in the top or bottom band is used instead. |
 | AOI attention % | Sum of heatmap mass inside the box. |
+| Video | Frames are sampled at `--fps`. Each heatmap is averaged over the last second, so attention lingers briefly after a cut, as eye-tracking shows. A cut is a jump of more than 40% in the grayscale histogram between consecutive frames, with a 0.5 s minimum shot length. AOIs are detected at the start and after each cut; static AOIs from a JSON file apply to every frame. |
 | Impact Score | 10 inside the recommended range; outside, it falls linearly from 7 at the edge to 1 at the end of the scale. The final score is the mean over available metrics, and missing AOIs are skipped. |
 
 ## Honest limitations
@@ -68,7 +82,8 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 
 ## Roadmap
 
-- [ ] Video: per-frame scoring, first/last-2s windows, scene-cut detection
+- [x] Video: per-frame scoring, first/last-2s windows, scene-cut detection
+- [ ] Video: track AOIs within a shot (they're currently fixed per shot, so they drift on zooms and pans)
 - [ ] `mediaattention bench <folder>`: build recommended ranges from your own corpus
 - [ ] Memory score (ResMem)
 - [ ] Open ad eye-tracking benchmark (CC / SIM / KLD) to publish real accuracy numbers
@@ -79,6 +94,6 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 The code is Apache-2.0. Model weights are downloaded at runtime and keep their own terms:
 
 - DeepGaze IIE code is MIT; its weights are trained on SALICON/MIT1003.
-- OWLv2 and RapidOCR are Apache-2.0.
+- OWLv2 and RapidOCR are Apache-2.0. PyAV is BSD-3-Clause.
 
 Check the dataset terms before any commercial use.

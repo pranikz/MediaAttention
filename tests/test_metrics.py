@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from PIL import Image
 
 from mediaattention import score
@@ -51,3 +52,27 @@ def test_text_roles():
     assert cta == [[40, 300, 239, 359]]  # grown from the text out to the button edges
     assert headline == [[40, 60, 360, 120]]
     assert [t for _, t in other] == ["Recycled foam and all-day comfort", "NOVA"]
+
+
+def test_video_cuts_and_aoi_metrics(tmp_path):
+    av = pytest.importorskip("av")
+    from mediaattention.video import score_video
+    # 3 s at 10 fps: 1.5 s of a dark square on the left, then a hard cut to a light square on the right
+    path = tmp_path / "cut.mp4"
+    with av.open(str(path), "w") as out:
+        s = out.add_stream("mpeg4", rate=10)
+        s.width, s.height, s.pix_fmt = 320, 180, "yuv420p"
+        for i in range(30):
+            a = np.full((180, 320, 3), 235, np.uint8) if i < 15 else np.full((180, 320, 3), 25, np.uint8)
+            if i < 15:
+                a[60:120, 40:100] = 20
+            else:
+                a[60:120, 220:280] = 230
+            out.mux(s.encode(av.VideoFrame.from_ndarray(a, format="rgb24")))
+        out.mux(s.encode())
+    report = score_video(path, [{"label": "left", "box": [0, 0, 0.5, 1]}], model="spectral", fps=2, window=0.5)
+    assert report["cuts"] == [1.5]
+    assert len(report["timeline"]) == 6
+    left = [r["aois"]["left"] for r in report["timeline"]]
+    assert min(left[:3]) > 60 and max(left[4:]) < 40  # attention follows the square across the cut
+    assert report["aois"]["left"]["availability_s"] == 3.0
