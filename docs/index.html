@@ -282,7 +282,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
         <article class="frame metric reveal"><span class="name">01 · pixel map</span><div class="box">
           <h3>Heatmap &amp; fog</h3><div class="range">WHERE PEOPLE LOOK</div>
           <dl><dt>What</dt><dd>Where viewers are predicted to fixate in the first seconds of free viewing. The fog map is the inverse: whatever stays fogged is likely missed.</dd>
-          <dt>How</dt><dd>DeepGaze IIE [1], an ensemble of deep networks trained on human fixations (SALICON [4], MIT1003 [5]), with a centre-bias prior [7].</dd>
+          <dt>How</dt><dd>UNISAL [26], a compact network trained on human fixations (SALICON [4]), picked by our eye-tracking benchmark as the most accurate model with an open licence. DeepGaze IIE [1] is an optional, more accurate and slower alternative.</dd>
           <dt>Do</dt><dd class="do">If your logo or offer sits in fog, move it, enlarge it or give it contrast.</dd></dl></div></article>
         <article class="frame metric reveal"><span class="name">02 · 0–100, higher is sharper</span><div class="box">
           <h3>Focus</h3><div class="range">CONCENTRATED OR SCATTERED</div>
@@ -340,7 +340,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       <h2 class="display sec-title reveal">How it's built</h2>
       <p class="sec-intro reveal">Openly published models stitched together with transparent maths. Each stage is small enough to read in one sitting and <b>swap out</b> when something better appears.</p>
       <ol class="pipe">
-        <li class="frame reveal"><span class="name">attention</span><div class="box"><h4>Predict attention</h4><p>A fixation-density map for the whole frame, calibrated to how people actually look.</p><div class="tech">DeepGaze IIE [1] · spectral residual [3]</div></div></li>
+        <li class="frame reveal"><span class="name">attention</span><div class="box"><h4>Predict attention</h4><p>A fixation-density map for the whole frame, calibrated to how people actually look.</p><div class="tech">UNISAL [26] · DeepGaze IIE [1] · spectral residual [3]</div></div></li>
         <li class="frame reveal"><span class="name">layout</span><div class="box"><h4>Read the layout</h4><p>OCR finds every text line; size and button-shaped patches sort them into headline, body and CTA.</p><div class="tech">RapidOCR / PP-OCR [9]</div></div></li>
         <li class="frame reveal"><span class="name">objects</span><div class="box"><h4>Find brand &amp; product</h4><p>Open-vocabulary detection scores each role separately, so the logo can't steal the button's box.</p><div class="tech">OWLv2 [8]</div></div></li>
         <li class="frame reveal"><span class="name">metrics</span><div class="box"><h4>Score</h4><p>Focus, cognitive demand and AOI attention are numpy over the heatmap; memory is a separate network.</p><div class="tech">numpy · ResMem [10]</div></div></li>
@@ -388,7 +388,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
         <div class="frame step reveal"><span class="name">install</span><div class="box"><h4>Install</h4>
 <pre><span class="p">$ </span><b>git clone https://github.com/pranikz/MediaAttention</b>
 <span class="p">$ </span><b>cd MediaAttention</b>
-<span class="p">$ </span><b>pip install -e ".[deepgaze,aoi,video,ui]"</b>
+<span class="p">$ </span><b>pip install -e ".[unisal,aoi,video,ui]"</b>
 <span class="c"># optional, non-commercial</span>
 <span class="p">$ </span><b>pip install -e ".[memory]"</b></pre></div></div>
         <div class="frame step reveal"><span class="name">web ui</span><div class="box"><h4>Web UI</h4>
@@ -416,7 +416,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
         <li><b>Layout rules, not a layout model.</b> A headline smaller than its body copy, a ghost button or a centred logo can fool AOI detection; pass your own boxes then.</li>
         <li><b>Targets are only as good as your corpus.</b> <span class="mono">bench</span> ranks ads by their own scores; rank by real KPIs (CTR, recall) when you have them.</li>
         <li><b>Memory scores cluster high</b>, and ResMem's weights are <b>non-commercial</b>, which is why it's an optional extra.</li>
-        <li><b>Check model licences.</b> DeepGaze IIE's repository has no licence file (all rights reserved by default) and ResMem is non-commercial. Both are downloaded from their authors at runtime, never redistributed here.</li>
+        <li><b>Check model licences.</b> The default model, UNISAL, is Apache-2.0. The optional DeepGaze IIE's repository has no licence file (all rights reserved by default) and ResMem is non-commercial. Both are downloaded from their authors at runtime, never redistributed here.</li>
         <li><b>Video has no audio.</b> Sound, voice-over and music drive attention in video and aren't modelled.</li>
       </ul>
     </div>
@@ -435,6 +435,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
           <li data-n="5">Judd, T., Ehinger, K., Durand, F. &amp; Torralba, A. (2009). <i>Learning to predict where humans look.</i> ICCV. <a href="https://doi.org/10.1109/ICCV.2009.5459462">doi</a><span class="used">training data behind DeepGaze IIE</span></li>
           <li data-n="6">Bylinskii, Z., Judd, T., Oliva, A., Torralba, A. &amp; Durand, F. (2019). <i>What do different evaluation metrics tell us about saliency models?</i> IEEE TPAMI 41(3). <a href="https://arxiv.org/abs/1604.03605">arXiv:1604.03605</a><span class="used">used: metric choice (CC, SIM, KLD)</span></li>
           <li data-n="7">Tatler, B. W. (2007). <i>The central fixation bias in scene viewing: Selecting an optimal viewing position independently of motor biases and image feature distributions.</i> Journal of Vision 7(14). <a href="https://doi.org/10.1167/7.14.4">doi</a><span class="used">used: centre-bias prior</span></li>
+          <li data-n="26">Droste, R., Jiao, J. &amp; Noble, J. A. (2020). <i>Unified image and video saliency modeling.</i> ECCV. <a href="https://arxiv.org/abs/2003.05477">arXiv:2003.05477</a><span class="used">used: attention heatmap (default model)</span></li>
         </ol></div></div>
 
         <div class="frame reveal"><span class="name">layout, text &amp; objects · memorability</span><div class="box"><ol class="refs">

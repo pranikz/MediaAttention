@@ -1,1 +1,0 @@
-mediaattention[deepgaze,aoi,video,ui] @ git+https://github.com/pranikz/MediaAttention@main

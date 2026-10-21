@@ -1,6 +1,6 @@
 # MediaAttention
 
-**Site:** https://pranikz.github.io/MediaAttention/ · **Hugging Face:** https://huggingface.co/spaces/pranikz/MediaAttention
+**Site:** https://pranikz.github.io/MediaAttention/ · **Model on Hugging Face:** https://huggingface.co/pranikz/MediaAttention
 
 Open-source predicted attention for ads and media. Give it an image or video creative and it predicts where people will look, then scores it:
 
@@ -17,7 +17,8 @@ It's an open alternative to proprietary "neuro-prediction" tools. The methods ar
 
 ```bash
 pip install -e .                 # core: spectral-residual fallback, no ML deps
-pip install -e ".[deepgaze]"     # DeepGaze IIE attention model (recommended)
+pip install -e ".[unisal]"       # UNISAL attention model, the default (recommended)
+pip install -e ".[deepgaze]"     # DeepGaze IIE, optional (more accurate, slower; no licence file, see Licenses)
 pip install -e ".[aoi]"          # automatic AOI detection (OCR + OWLv2)
 pip install -e ".[video]"        # video support (PyAV)
 pip install -e ".[memory]"       # memory score (ResMem). NON-COMMERCIAL license, see Licenses
@@ -54,7 +55,7 @@ This writes `report/heat.png`, `report/fog.png`, `report/aois.png` (heatmap with
 
 ```json
 {
-  "model": "deepgaze",
+  "model": "unisal",
   "metrics": {"focus": 64.2, "cognitive_demand": 38.5, "brand_attention": 12.1},
   "aois": [{"label": "brand", "box": [0.05, 0.04, 0.3, 0.14], "attention_pct": 12.1, "area_pct": 3.5, "lift": 3.46}],
   "impact_score": 10.0,
@@ -98,14 +99,14 @@ From Python:
 ```python
 from PIL import Image
 from mediaattention import score
-heat, report = score(Image.open("ad.png"), model="deepgaze")
+heat, report = score(Image.open("ad.png"))  # model="unisal" by default; "deepgaze" or "spectral" also work
 ```
 
 ## How each number is computed
 
 | Metric | Method |
 |---|---|
-| Heatmap | DeepGaze IIE with a Gaussian center-bias prior. Fallback: spectral residual (Hou & Zhang 2007). |
+| Heatmap | UNISAL (Droste et al., ECCV 2020) with its SALICON weights, downloaded on first use from [pranikz/MediaAttention](https://huggingface.co/pranikz/MediaAttention). Optional: DeepGaze IIE with a Gaussian centre-bias prior. Fallback: spectral residual (Hou & Zhang 2007). |
 | Focus | Share of the image needed to hold 80% of predicted attention, mapped to 0–100 (an attention-dispersion measure). |
 | Cognitive Demand | Mean Shannon entropy of 16×16 blocks of the grayscale image (32 levels), normalized to 0–100. |
 | Memory | ResMem (Needell & Bainbridge 2022), trained on LaMem/MemCat recognition data. It predicts the share of people who recognise an image when it repeats in a rapid stream, the same game Neurons' memory model is built on. Scores cluster high (a plain grey image gets ~81, ads ~90–98), so compare within a `bench` corpus rather than reading absolute values. Videos are scored per frame, without audio. |
@@ -116,30 +117,30 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 
 ## Benchmark
 
-How close are the predictions to where real people look? We scored six open attention models (MediaAttention ships DeepGaze IIE and the spectral-residual fallback today) against human eye tracking on **FiWI** (Shen & Zhao, ECCV 2014): 149 webpages, 11 viewers, 5 s free viewing. None of the models was trained on it. All metrics were computed with pysaliency on an Apple M3 Pro. The method and the script are in [`benchmarks/`](benchmarks/).
+How close are the predictions to where real people look? We scored six open attention models against human eye tracking on **FiWI** (Shen & Zhao, ECCV 2014): 149 webpages, 11 viewers, 5 s free viewing. None of the models was trained on it. All metrics were computed with pysaliency on an Apple M3 Pro. The method and the script are in [`benchmarks/`](benchmarks/). Rebuild the tables with `python benchmarks/table.py fiwi`.
 
-| Model | CC ↑ | NSS ↑ | sAUC ↑ | AUC ↑ | SIM ↑ | KLD ↓ | s / image | Licence |
+| Model | CC ↑ | NSS ↑ | sAUC ↑ | AUC ↑ | SIM ↑ | KLD ↓ | s / image (M3 Pro) | Licence |
 |---|---|---|---|---|---|---|---|---|
 | DeepGaze MSDB | 0.676 | 1.54 | 0.748 | 0.840 | 0.642 | 0.462 | 2.90 | no licence file |
-| DeepGaze IIE (default) | 0.649 | 1.50 | 0.729 | 0.824 | 0.629 | 0.504 | 0.67 | no licence file |
-| UNISAL | 0.615 | 1.31 | 0.661 | 0.795 | 0.613 | 0.787 | 0.15 | Apache-2.0 |
+| DeepGaze IIE | 0.649 | 1.50 | 0.729 | 0.824 | 0.629 | 0.504 | 0.67 | no licence file |
+| **UNISAL (default)** | 0.616 | 1.31 | 0.661 | 0.796 | 0.613 | 0.575 | 0.04 | Apache-2.0 |
 | TranSalNet-Dense | 0.608 | 1.25 | 0.646 | 0.788 | 0.605 | 0.603 | 0.10 | MIT |
 | Centre-bias baseline | 0.345 | 0.62 | 0.500 | 0.676 | 0.476 | 0.899 | 0.01 | – |
 | Spectral residual (fallback) | 0.209 | 0.40 | 0.562 | 0.633 | 0.449 | 1.052 | 0.00 | – |
 
 Correlation (CC) with human attention, by page type:
 
-| Model | Pictorial | Mixed | Text |
+| Model | Mixed | Pictorial | Text |
 |---|---|---|---|
-| DeepGaze MSDB | 0.751 | 0.686 | 0.592 |
-| DeepGaze IIE (default) | 0.726 | 0.680 | 0.541 |
-| UNISAL | 0.675 | 0.641 | 0.530 |
-| TranSalNet-Dense | 0.650 | 0.642 | 0.532 |
+| DeepGaze MSDB | 0.686 | 0.751 | 0.592 |
+| DeepGaze IIE | 0.680 | 0.726 | 0.541 |
+| **UNISAL (default)** | 0.641 | 0.676 | 0.531 |
+| TranSalNet-Dense | 0.642 | 0.650 | 0.532 |
 
 What this means:
 
-- **DeepGaze MSDB is the most accurate** on every metric, but ~4× slower than DeepGaze IIE.
-- **UNISAL is the strongest model with a permissive licence**, within ~0.03–0.06 CC of DeepGaze. It is also 4× faster than IIE.
+- **UNISAL is the default.** It is the most accurate model with a permissive licence, and by far the fastest: 0.04 s per image, ~17× faster than DeepGaze IIE.
+- **DeepGaze MSDB is the most accurate** on every metric, ~0.06 CC ahead, but 70× slower and with no licence file. DeepGaze IIE stays available as an option (`--model deepgaze`).
 - **Text-heavy layouts are the hardest case for every model.** This is where ad-specific training data would help most.
 
 An ad and poster benchmark on UEyes (CHI 2023) is in progress.
@@ -161,13 +162,14 @@ An ad and poster benchmark on UEyes (CHI 2023) is in progress.
 - [ ] Commercial-friendly memory model (retrain on openly licensed data)
 - [x] Eye-tracking benchmark of the open models (FiWI webpages; see Benchmark)
 - [ ] Ad and poster benchmark on UEyes (in progress)
-- [ ] Permissive default model: switch to UNISAL (Apache-2.0) or get DeepGaze's licence clarified
+- [x] Permissive default model: UNISAL (Apache-2.0), chosen by the benchmark
 - [ ] Open data-collection kit: webcam eye-tracking plus timed Yes/No response tests, so the community can build ad-specific and emotion models
 
 ## Licenses
 
 The code is Apache-2.0. Model weights are downloaded at runtime and keep their own terms:
 
+- **UNISAL** (default) is Apache-2.0. Its model code is vendored in `mediaattention/unisal/` with its licence, and its weights are redistributed unchanged on Hugging Face with a NOTICE.
 - **DeepGaze IIE has no license file** in its repository, which by default means all rights reserved. It's an optional extra and is downloaded from the authors at runtime, never redistributed here. Ask the authors before commercial use. Its weights are trained on SALICON/MIT1003.
 - OWLv2, RapidOCR and OpenCV are Apache-2.0. PyAV is BSD-3-Clause.
 - **ResMem is non-commercial only** (University of Chicago license). Research use, including inside a company, is fine. Using it in a commercial product needs permission from the Brain Bridge Lab. It's an optional extra, so nothing else depends on it.

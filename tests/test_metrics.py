@@ -148,3 +148,9 @@ def test_ui_calibrate(tmp_path):
     assert md.startswith("### 6 assets scored")
     assert "Focus" in [row[0] for row in table.value["data"]]
     assert "focus" in json.loads(Path(bench_json).read_text())
+
+
+def test_unisal_input_size():
+    from mediaattention.saliency import _unisal_size
+    assert _unisal_size(768, 1360) == (256, 416)  # 8x13 cells, UNISAL's closest grid to 16:9
+    assert _unisal_size(1000, 1000) == (320, 320)

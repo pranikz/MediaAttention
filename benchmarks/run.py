@@ -17,8 +17,6 @@ import contextlib
 import csv
 import json
 import os
-import shutil
-import subprocess
 import sys
 import time
 from functools import cache
@@ -29,7 +27,7 @@ from PIL import Image
 from scipy.ndimage import gaussian_filter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from mediaattention.saliency import _resize, center_bias, deepgaze, device, spectral_residual  # noqa: E402
+from mediaattention.saliency import _resize, center_bias, deepgaze, device, spectral_residual, unisal  # noqa: E402
 
 BENCH = Path(os.environ.get("MA_BENCH", "~/Documents/Personal/MediaAttention-bench")).expanduser()
 OUT = Path(__file__).parent / "results"
@@ -112,6 +110,11 @@ def m_spectral(img, ppd):
     return spectral_residual(img)
 
 
+def m_unisal(img, ppd):
+    """UNISAL, SALICON weights, as shipped in mediaattention (matches the original repo's CLI, CC > 0.9999)."""
+    return unisal(img)
+
+
 def m_deepgaze_iie(img, ppd):
     return deepgaze(img)
 
@@ -165,25 +168,8 @@ def m_transalnet(img, ppd):
     return _resize(pred[oy:oy + nh, ox:ox + nw], img.size)
 
 
-def run_unisal(items, cache_dir):
-    """UNISAL (base SALICON weights) through its own folder CLI; returns {path: map}."""
-    work = cache_dir / "unisal_input"
-    shutil.rmtree(work, ignore_errors=True)
-    (work / "images").mkdir(parents=True)
-    names = {}
-    for i, it in enumerate(items):
-        name = f"{i:05d}.png"
-        Image.open(it["path"]).convert("RGB").save(work / "images" / name)
-        names[name] = it["path"]
-    repo = BENCH / "models/unisal"
-    subprocess.run([sys.executable, "run.py", "predictions_from_folder", "--folder_path", str(work),
-                    "--is_video", "False", "--source", "SALICON"], cwd=repo, check=True,
-                   stdout=subprocess.DEVNULL)
-    return {names[p.name]: np.asarray(Image.open(p).convert("L"), dtype=np.float32) for p in (work / "saliency").glob("*.png")}
-
-
 MODELS = {"center": m_center, "spectral": m_spectral, "deepgaze_iie": m_deepgaze_iie,
-          "deepgaze_msdb": m_deepgaze_msdb, "transalnet": m_transalnet, "unisal": None}
+          "deepgaze_msdb": m_deepgaze_msdb, "transalnet": m_transalnet, "unisal": m_unisal}
 
 
 # ---------------------------------------------------------------- metrics
@@ -222,14 +208,12 @@ def evaluate(dataset, model_names, limit=None):
     cache_dir.mkdir(parents=True, exist_ok=True)
     rows = []
     for name in model_names:
-        t0 = time.perf_counter()
-        unisal = run_unisal(items, cache_dir) if name == "unisal" else None
-        t_total = time.perf_counter() - t0  # UNISAL runs as one batch (includes its model load and image I/O)
+        t_total = 0.0
         for i, it in enumerate(items):
             img = Image.open(it["path"]).convert("RGB")
             ppd, sigma = per_image_scale(it, meta)
             t = time.perf_counter()
-            pred = _resize(unisal[it["path"]], img.size) if unisal else MODELS[name](img, ppd)
+            pred = MODELS[name](img, ppd)
             t_total += time.perf_counter() - t
             gt = fixation_map((img.height, img.width), it["x"], it["y"], sigma)
             others = np.concatenate([r for j, r in enumerate(rel) if j != i]) * [img.width, img.height]

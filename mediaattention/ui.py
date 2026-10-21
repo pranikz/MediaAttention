@@ -110,7 +110,7 @@ def build():
                 auto_aoi = gr.Checkbox(value=True, label="Detect AOIs (brand, product, headline, body, CTA)")
                 product = gr.Textbox(label="Product", placeholder="e.g. a running shoe (helps product detection)")
                 with gr.Accordion("Options", open=False):
-                    model = gr.Dropdown(["auto", "deepgaze", "spectral"], value="auto", label="Attention model")
+                    model = gr.Dropdown(["auto", "unisal", "deepgaze", "spectral"], value="auto", label="Attention model")
                     fps = gr.Slider(0.5, 10, value=2, step=0.5, label="Video: frames scored per second")
                     bench_file = gr.File(label="benchmarks.json from `mediaattention bench` (optional)",
                                          file_types=[".json"], type="filepath")
@@ -139,7 +139,7 @@ def build():
                 c_aoi = gr.Checkbox(value=True, label="Detect AOIs (gives brand, product and CTA targets too)")
                 c_product = gr.Textbox(label="Product", placeholder="e.g. a running shoe")
                 with gr.Accordion("Options", open=False):
-                    c_model = gr.Dropdown(["auto", "deepgaze", "spectral"], value="auto", label="Attention model")
+                    c_model = gr.Dropdown(["auto", "unisal", "deepgaze", "spectral"], value="auto", label="Attention model")
                     c_fps = gr.Slider(0.5, 10, value=2, step=0.5, label="Video: frames scored per second")
                     c_min_n = gr.Number(value=5, precision=0, label="Skip metrics seen in fewer assets than")
                 c_run = gr.Button("Build targets", variant="primary")

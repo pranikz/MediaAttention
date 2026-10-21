@@ -57,12 +57,57 @@ def deepgaze(img, dev=None):
     return _resize(np.exp(logd.cpu().numpy()[0, 0]), img.size)
 
 
+UNISAL_REPO = "pranikz/MediaAttention"  # UNISAL weights + config, redistributed under Apache-2.0
+
+
+def _unisal_size(h, w):
+    """UNISAL's input size: the 32-px grid (7-13 cells a side, 100-120 cells) closest to the aspect ratio."""
+    ar = h / w
+    cells = [(a, b) for a in range(7, 14) for b in range(7, 14) if 100 <= a * b <= 120]
+    a, b = max(cells, key=lambda c: min(ar, c[0] / c[1]) / max(ar, c[0] / c[1]))
+    return a * 32, b * 32
+
+
+@cache
+def _unisal(dev):
+    import json
+
+    import torch
+    from huggingface_hub import hf_hub_download
+
+    from .unisal.model import UNISAL
+    cfg = json.loads(open(hf_hub_download(UNISAL_REPO, "unisal_config.json")).read())
+    cfg["cnn_cfg"]["pretrained"] = False  # the full state dict below includes the backbone
+    cfg["verbose"] = 0
+    m = UNISAL(**cfg)
+    m.load_state_dict(torch.load(hf_hub_download(UNISAL_REPO, "unisal_salicon.pth"), map_location="cpu"))
+    return m.to(dev).eval()
+
+
+def unisal(img, dev=None):
+    """UNISAL (Droste et al., ECCV 2020), SALICON weights: the default. Apache-2.0, ~4M params."""
+    import torch
+    dev = dev or device()
+    h, w = img.height, img.width
+    th, tw = _unisal_size(h, w)
+    x = np.asarray(img.convert("RGB").resize((tw, th), Image.LANCZOS), dtype=np.float32) / 255
+    x = (x - (0.485, 0.456, 0.406)) / (0.229, 0.224, 0.225)
+    x = torch.tensor(x.transpose(2, 0, 1)[None, None], dtype=torch.float32, device=dev)
+    with torch.no_grad():
+        logd = _unisal(dev)(x, target_size=(h, w), source="SALICON", static=True)
+    return np.exp(logd[0, 0, 0].float().cpu().numpy())
+
+
+MODELS = {"unisal": unisal, "deepgaze": deepgaze, "spectral": spectral_residual}
+
+
 def predict(img, model="auto"):
-    """Returns (heatmap, model_used)."""
+    """Returns (heatmap, model_used). auto = UNISAL if torch is installed, else the spectral fallback."""
     if model == "auto":
         try:
-            import deepgaze_pytorch  # noqa: F401
-            model = "deepgaze"
+            import huggingface_hub  # noqa: F401
+            import torch  # noqa: F401
+            model = "unisal"
         except ImportError:
             model = "spectral"
-    return {"deepgaze": deepgaze, "spectral": spectral_residual}[model](img), model
+    return MODELS[model](img), model
