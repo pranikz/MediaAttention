@@ -19,11 +19,30 @@ pip install -e ".[deepgaze]"     # DeepGaze IIE attention model (recommended)
 pip install -e ".[aoi]"          # automatic AOI detection (OCR + OWLv2)
 pip install -e ".[video]"        # video support (PyAV)
 pip install -e ".[memory]"       # memory score (ResMem). NON-COMMERCIAL license, see Licenses
+pip install -e ".[ui]"           # web UI (Gradio)
 ```
 
 When ResMem is installed, `memory` is added to every report automatically. Videos also get `memory_start` / `memory_end`.
 
 ## Use
+
+### Web UI
+
+```bash
+mediaattention ui        # opens http://localhost:7860
+```
+
+Drop in an image or video (or click one of the built-in examples), optionally name the product, and hit **Analyse**. You get:
+
+- the Impact Score with a verdict
+- every metric with its 1–10 score and target range
+- the AOI table
+- heatmap, fog map and AOI overlay for images; heatmap video and a Focus/Cognitive Demand/Memory timeline for videos
+- `scores.json` to download
+
+Upload a `benchmarks.json` from `bench` under *Options* to score against your own corpus. Everything runs on your machine. `--share` creates a temporary public link if you want to show someone.
+
+### Command line
 
 ```bash
 mediaattention ad.png --aoi auto --product "a running shoe" --out report/

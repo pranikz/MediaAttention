@@ -26,6 +26,9 @@ def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["bench"]:
         return bench_main(argv[1:])
+    if argv[:1] == ["ui"]:
+        from .ui import main as ui_main
+        return ui_main(argv[1:])
     ap = argparse.ArgumentParser(prog="mediaattention", description="Predict where people look in an image or video and score it.")
     ap.add_argument("media", help="image or video file")
     ap.add_argument("--aoi", help="AOI JSON file ([{label, box:[x0,y0,x1,y1]}] in 0-1 coords), or 'auto'")

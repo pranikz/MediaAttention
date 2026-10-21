@@ -115,3 +115,15 @@ def test_track_boxes_follows_pan_and_zoom():
     [a] = track_boxes([{"label": "x", "box": [60 / 320, 70 / 180, 100 / 320, 110 / 180]}], zoom)
     width = (a["box"][2] - a["box"][0]) * 320
     assert abs(width - 40 * 1.02 ** 10) < 4
+
+
+def test_ui_analyse(tmp_path):
+    pytest.importorskip("gradio")
+    from mediaattention.ui import analyse, build
+    build()  # the layout constructs
+    a = np.full((200, 300, 3), 240, np.uint8)
+    a[80:120, 200:240] = 20
+    Image.fromarray(a).save(tmp_path / "ad.png")
+    out = analyse(str(tmp_path / "ad.png"), False, "", "spectral", 2, None)
+    assert out[0].startswith("## Impact score") and len(out) == 9
+    assert "Focus" in [row[0] for row in out[1].value["data"]]

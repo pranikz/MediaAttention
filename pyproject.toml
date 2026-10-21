@@ -11,6 +11,7 @@ dependencies = ["numpy", "scipy", "pillow"]
 deepgaze = ["torch", "torchvision", "clip @ git+https://github.com/openai/CLIP", "einops", "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze"]
 aoi = ["torch", "transformers", "rapidocr_onnxruntime"]
 video = ["av", "opencv-python-headless"]
+ui = ["gradio"]
 memory = ["resmem"]  # NON-COMMERCIAL license, see README
 dev = ["pytest"]
 
