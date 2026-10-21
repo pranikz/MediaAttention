@@ -27,7 +27,7 @@ from PIL import Image
 from scipy.ndimage import gaussian_filter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from mediaattention.saliency import _resize, center_bias, deepgaze, device, spectral_residual, unisal  # noqa: E402
+from mediaattention.saliency import _resize, ads, center_bias, deepgaze, device, spectral_residual, unisal  # noqa: E402
 
 BENCH = Path(os.environ.get("MA_BENCH", "~/Documents/Personal/MediaAttention-bench")).expanduser()
 OUT = Path(__file__).parent / "results"
@@ -199,7 +199,7 @@ def m_transalnet(img, ppd):
 
 MODELS = {"center": m_center, "spectral": m_spectral, "deepgaze_iie": m_deepgaze_iie,
           "deepgaze_msdb": m_deepgaze_msdb, "transalnet": m_transalnet, "unisal": m_unisal,
-          "unisal_ueyes": m_unisal_ueyes}
+          "unisal_ueyes": m_unisal_ueyes, "ads": lambda img, ppd: ads(img)}  # ads = the published unisal_ueyes
 
 
 # ---------------------------------------------------------------- metrics

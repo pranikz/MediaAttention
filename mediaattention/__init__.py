@@ -5,7 +5,7 @@ from . import memory as _memory
 from .metrics import DEFAULT_RANGES, aoi_stats, cognitive_demand, focus, impact_score
 from .saliency import predict
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 def score(img, aois=None, model="auto", ranges=None):

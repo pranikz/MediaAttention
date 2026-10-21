@@ -8,13 +8,16 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "benchmarks"))
+import tables  # noqa: E402
+
 HERE = Path(__file__).parent
 ROOT = HERE.parents[1]
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 NAMES = {"deepgaze_msdb": "DeepGaze MSDB", "deepgaze_iie": "DeepGaze IIE", "unisal": "UNISAL",
          "transalnet": "TranSalNet-Dense", "center": "Centre-bias baseline", "spectral": "Spectral residual",
-         "unisal_ueyes": "UNISAL, fine-tuned on UEyes (ours)"}
+         "unisal_ueyes": "MediaAttention-Ads v1 (ours)"}
 LICENCE = {"deepgaze_msdb": "no licence file", "deepgaze_iie": "no licence file", "unisal": "Apache-2.0",
            "transalnet": "MIT", "center": "–", "spectral": "–", "unisal_ueyes": "Apache-2.0"}
 BASE = ["deepgaze_msdb", "deepgaze_iie", "unisal", "transalnet", "center", "spectral"]
@@ -124,7 +127,14 @@ def ueyes_section(ueyes, test, fiwi):
                  "which is out of domain for both.</p>"
                  + results_table(test, keys, timing=False)
                  + f"<p class='tcap'><b>Table 8.</b> UEyes test split. Fine-tuning changes CC by {gain:+.3f}"
-                 + (f"; on FiWI by {fiwi_gain:+.3f}." if fiwi_gain is not None else ".") + "</p>")
+                 + (f"; on FiWI by {fiwi_gain:+.3f}." if fiwi_gain is not None else ".") + "</p>"
+                 "<p>We call the fine-tuned network <b>MediaAttention-Ads v1</b>. It keeps UNISAL's architecture (3.7M parameters) and "
+                 "was trained for 8 epochs (AdamW, lr 3e-5, batch norm frozen, about 25 minutes on an Apple M3 Pro). Held-out CC rose "
+                 "from 0.502 to 0.769, with the best epoch at 5. Table 9 isolates the 27 test posters, the category closest to print "
+                 "and display advertising.</p>"
+                 + tables.to_html(tables.posters_table()[0])
+                 + "<p class='tcap'><b>Table 9.</b> UEyes test posters (n = 27), 95% confidence intervals over images. "
+                   "MediaAttention-Ads v1's interval does not overlap any other model's: +0.256 CC (+52%) over the best other open model.</p>")
     return html
 
 
@@ -147,10 +157,26 @@ def real_ads_section():
             + row("body_attention", "Body-copy attention (%)") + row("headline_attention", "Headline attention (%)")
             + row("brand_attention", "Brand attention (%)") + row("cta_attention", "CTA attention (%)")
             + row("focus", "Focus") + row("cognitive_demand", "Cognitive demand") + "</tbody></table>"
-            f"<p class='tcap'><b>Table 9.</b> 272 Wikimedia ads, UNISAL. Targets calibrated on these ads "
+            f"<p class='tcap'><b>Table 10.</b> 272 Wikimedia ads, stock UNISAL. Targets calibrated on these ads "
             f"(top 20%; middle 50% for complexity): focus {rng['focus'][0]}–{rng['focus'][1]}, cognitive demand "
             f"{rng['cognitive_demand'][0]}–{rng['cognitive_demand'][1]}, brand attention ≥ {rng['brand_attention'][0]}%. "
             "These are vintage print ads, so treat them as a reference, not as targets for modern digital creative.</p>")
+
+
+def arch_section():
+    return ("<h3>5.7 Architectures compared</h3>"
+            "<p>Table 11 sets the models side by side, with Neurons' commercial model as described in its public tech paper [30] "
+            "for reference. Accuracy columns are from Tables 3 and 8.</p>"
+            + tables.to_html(tables.arch_table())
+            + "<p class='tcap'><b>Table 11.</b> Architecture, size, training data, video support, licence and speed. "
+              "Parameter counts were measured by loading each model.</p>"
+              "<div class='key'><p><b>Where MediaAttention-Ads v1 wins.</b> (1) Accuracy on designed content: it leads every "
+              "UEyes category by 0.19–0.26 CC and is the best of all models on FiWI's text-heavy pages. (2) Efficiency: it is 20–120× "
+              "smaller and 17–70× faster than DeepGaze, so it runs on a laptop CPU. (3) One network for images and video. "
+              "(4) Apache-2.0 code and weights.</p>"
+              "<p><b>Where it does not.</b> DeepGaze MSDB, at 120× the size, remains ~0.05 CC ahead on FiWI and further ahead on "
+              "photo-led pages. The video branch is not ad-tuned. UEyes is one lab panel of 62 participants viewing freely, "
+              "unlike a one-second glance in a feed.</p></div>")
 
 
 # ------------------------------------------------------------------ document
@@ -166,10 +192,10 @@ def build():
 
     html = TEMPLATE.format(
         css=CSS, bars=bars(fiwi), scatter=scatter(fiwi), results=results_table(fiwi), categories=category_table(fiwi),
-        ueyes=ueyes_section(ueyes, ueyes_test, fiwi) + real_ads_section(), u=u, iie=iie, msdb=msdb, tsn=tsn, speedup=speedup,
+        ueyes=ueyes_section(ueyes, ueyes_test, fiwi) + real_ads_section() + arch_section(), u=u, iie=iie, msdb=msdb, tsn=tsn, speedup=speedup,
         gap_lo=iie - u, gap_hi=msdb - u, text_u=text_cc["unisal"], text_msdb=text_cc["deepgaze_msdb"],
         pict_u=pict_cc["unisal"], pict_msdb=pict_cc["deepgaze_msdb"], center=fiwi["center"]["all"]["CC"][0],
-        version="v0.1 (FiWI results)" if not ueyes else "v0.2 (FiWI and UEyes results)")
+        version="v0.2 · MediaAttention-Ads v1")
     out = HERE / "report.html"
     out.write_text(html)
     pdf = HERE / "MediaAttention-report.pdf"
@@ -204,6 +230,7 @@ table { width: 100%; border-collapse: collapse; margin: 2mm 0 2mm; font-size: 8.
 th { text-align: left; font-size: 7.2pt; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom: 1pt solid var(--ink); padding: 1.6mm 1.6mm 1.6mm 0; vertical-align: bottom; }
 td { border-bottom: .5pt solid var(--line); padding: 1.5mm 1.6mm 1.5mm 0; vertical-align: top; }
 tr { break-inside: avoid; }
+tr.ours td { font-weight: 600; color: #2f63e6; }
 td.n { font-family: 'Archivo', sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 figure { margin: 4mm 0 5mm; break-inside: avoid; }
 figure img { width: 100%; }
@@ -234,7 +261,7 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </section>
 
 <section class="abstract"><h2>Abstract</h2>
-<p>Predicted-attention tools promise eye-tracking insight on any creative in seconds, and are now common in advertising pre-testing. We review 15 commercial predictive tools and five measured-attention vendors from public sources, and find that their headline accuracy claims ("92–95%") are mostly AUC expressed as a share of a human ceiling, a saturated metric on which almost every model scores highly. Only four commercial tools publish third-party-computed scores on the MIT/Tübingen benchmark. We then review the open-source state of the art, including licences, which rule out several leading models for commercial use, and benchmark six openly available models against human eye tracking on 149 webpages (FiWI), none of which they were trained on. DeepGaze MSDB is the most accurate (CC {msdb:.3f}). UNISAL, the strongest model with a permissive licence, reaches CC {u:.3f} at {speedup:.0f}× the speed of DeepGaze IIE. All models are weakest on text-heavy layouts. We release the benchmark and MediaAttention, an open toolkit that uses the benchmark's choice of model, so every number here can be reproduced.</p></section>
+<p>Predicted-attention tools promise eye-tracking insight on any creative in seconds, and are now common in advertising pre-testing. We review 15 commercial predictive tools and five measured-attention vendors from public sources, and find that their headline accuracy claims ("92–95%") are mostly AUC expressed as a share of a human ceiling, a saturated metric on which almost every model scores highly. Only four commercial tools publish third-party-computed scores on the MIT/Tübingen benchmark. We then review the open-source state of the art, including licences, which rule out several leading models for commercial use, and benchmark six openly available models against human eye tracking on 149 webpages (FiWI), none of which they were trained on. DeepGaze MSDB is the most accurate (CC {msdb:.3f}). UNISAL, the strongest model with a permissive licence, reaches CC {u:.3f} at {speedup:.0f}× the speed of DeepGaze IIE. All stock models are weakest on text-heavy layouts and on posters and interfaces (UEyes). Fine-tuning UNISAL on UEyes' training split gives <b>MediaAttention-Ads v1</b>: on held-out posters it reaches CC 0.752 against 0.496 for the best other open model, with non-overlapping 95% confidence intervals, and it also improves on unseen webpages. We release the benchmark, the model and MediaAttention, an open toolkit that uses it, so every number here can be reproduced.</p></section>
 
 <h2>1. Introduction</h2>
 <p>Attention is the first gate in advertising. A brand, product or message that is not looked at cannot persuade or be remembered, and eye-tracking studies of print ads show that pictures, text size and brand placement shape where attention goes and how it transfers between elements [17]. Visual salience alone can bias quick consumer choices, even against stated preferences [19]. Measuring attention with eye tracking is accurate but slow and costly, so a market has grown around <i>predicting</i> it: upload a creative, receive a heatmap and a set of scores.</p>
@@ -243,7 +270,7 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <li><b>A market review</b> of 15 commercial predictive-attention tools and five measured-attention vendors, decoding what their accuracy claims mean (Section 3).</li>
 <li><b>An open-model review</b> covering accuracy, training data (for contamination) and licences (Section 4).</li>
 <li><b>An open benchmark</b> of six models against human eye tracking on data none of them was trained on (Section 5).</li>
-<li><b>MediaAttention</b>, an open-source toolkit that turns attention maps into ad metrics. Its default model is the benchmark's best permissively licensed model.</li>
+<li><b>MediaAttention-Ads v1</b>, an attention model fine-tuned on design eye tracking that leads every open model on posters, ads and interfaces (Section 5.5), and <b>MediaAttention</b>, an open-source toolkit that turns its attention maps into ad metrics.</li>
 </ol>
 
 <h2>2. Background</h2>
@@ -366,21 +393,24 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </ul>
 <p>Webcam gaze is coarse (2–4° versus about 0.5° for lab trackers), but aggregated over participants it is enough to validate heatmaps on one's own creatives. It is also a route to openly licensed training data for ad-specific attention and emotion models.</p>
 
-<h2>7. Limitations and next steps</h2>
+<h2>7. Limitations and roadmap</h2>
 <ul>
-<li><b>Size.</b> FiWI is small (149 images, 11 viewers) and covers webpages rather than ads. The next revision adds UEyes, which includes posters and ads.</li>
+<li><b>Data.</b> FiWI is small (149 webpages, 11 viewers). UEyes is larger but is one lab panel (62 participants, free viewing, 7 s). Neither measures a one-second glance in a scrolling feed.</li>
 <li><b>Scope.</b> We evaluated only openly available models; commercial tools could not be run on the same data.</li>
-<li><b>Video.</b> Video evaluation, an ad-tuned model trained on design eye-tracking data, and validation of secondary metrics against campaign outcomes are future work.</li>
+<li><b>Video and outcomes.</b> Video attention is not yet ad-tuned or validated on ad eye tracking, and secondary metrics have not been validated against campaign outcomes.</li>
 </ul>
+<p><b>Roadmap.</b> Next: tune the recurrent video branch on ad video eye tracking; score creatives in feed context with 1–2 s exposures; retrain the memory model on openly licensed data; and train a v2 that distils DeepGaze MSDB on photographs while keeping the design data, to close the remaining gap on photo-led creatives. Later: emotion, engagement and trust models trained on panel data from the open study kit; audio for video ads; and an open, growing ad eye-tracking dataset built from contributed studies.</p>
 
 <h2>8. Conclusion</h2>
-<p>Commercial attention-prediction claims are rarely comparable, and where third-party scores exist, the best open models match or beat them. A permissively licensed open model, UNISAL, comes within a few hundredths of CC of the state of the art on unseen eye-tracking data while running in tens of milliseconds. The benchmark, the toolkit and this report are open, so these claims can be checked and extended.</p>
+<p>Commercial attention-prediction claims are rarely comparable, and where third-party scores exist, the best open models match or beat them. A small, permissively licensed network fine-tuned on design eye tracking, MediaAttention-Ads v1, is the most accurate open model on posters, ads and interfaces by a wide margin, and stays within a few hundredths of CC of the state of the art on unseen webpages while running in tens of milliseconds. The benchmark, the toolkit and this report are open, so these claims can be checked and extended.</p>
 
 <h2>Appendix A · Reproducibility</h2>
 <pre>git clone https://github.com/pranikz/MediaAttention && cd MediaAttention
 pip install -e ".[unisal]" "git+https://github.com/matthias-k/pysaliency.git@dev" pandas scikit-image
 pip install torch torchvision einops clip-anytorch "deepgaze_pytorch @ git+https://github.com/matthias-k/DeepGaze" fire
-python benchmarks/run.py fiwi --models center,spectral,unisal,transalnet,deepgaze_iie,deepgaze_msdb
+python benchmarks/finetune_unisal.py --epochs 8   # reproduces MediaAttention-Ads v1
+python benchmarks/run.py fiwi --models center,spectral,unisal,transalnet,deepgaze_iie,deepgaze_msdb,unisal_ueyes
+python benchmarks/run.py ueyes_test --models center,spectral,unisal,transalnet,deepgaze_iie,deepgaze_msdb,unisal_ueyes
 python docs/research/build.py</pre>
 <p class="small">Dataset and third-party model locations are documented in <code>benchmarks/run.py</code>. Per-image scores are in <code>benchmarks/results/</code>.</p>
 

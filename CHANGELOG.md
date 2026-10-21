@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1 (2026-10-22)
+
+**MediaAttention-Ads v1: our own attention model**
+- The new default image model (`--model ads`): UNISAL fine-tuned on UEyes eye tracking of posters, ads and interfaces. Weights: [huggingface.co/pranikz/MediaAttention-Ads](https://huggingface.co/pranikz/MediaAttention-Ads).
+- On held-out UEyes posters it reaches CC 0.752 vs 0.496 for the best other open model, with non-overlapping 95% CIs. It leads every UEyes category, and also improves on unseen webpages (FiWI 0.631 vs 0.616).
+- Video keeps stock UNISAL's video weights; `--model unisal` selects the stock image model.
+
+**Benchmarks**
+- UEyes (CHI 2023) loaders and results for the full set and the test split. Seven models are covered, with per-image scores.
+- `benchmarks/finetune_unisal.py` reproduces the model, and `benchmarks/tables.py` generates every comparison table.
+- Architecture comparison and roadmap in the README, site and research report (v0.2).
+
 ## 0.2.0 (2026-10-21)
 
 **Default model**

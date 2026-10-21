@@ -117,7 +117,7 @@ def score_video(path, aois=None, product=None, model="auto", ranges=None, fps=2.
     `heat_mp4` if given.
     """
     model = resolve(model)
-    temporal = model == "unisal" and not per_frame
+    temporal = model in ("ads", "unisal") and not per_frame  # both use UNISAL's video mode (stock weights)
     from .render import aoi_overlay, heat_overlay
     recent, rows, writer, used = deque(), [], _Mp4(heat_mp4, fps) if heat_mp4 else None, model
     shot_aois = None if aois == "auto" else (aois or [])

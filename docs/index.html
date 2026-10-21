@@ -187,6 +187,22 @@ pre b { color: var(--paper); font-weight: 400; }
 .limits li { padding: 18px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 15.5px; }
 .limits b { color: var(--paper); font-weight: 500; }
 @media (max-width: 800px) { .limits { grid-template-columns: 1fr; } }
+.hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin: 0 0 40px; }
+.hero-stats b { display: block; font-size: 34px; font-weight: 500; color: var(--accent); }
+.hero-stats span { color: var(--muted); font-size: 14px; }
+@media (max-width: 800px) { .hero-stats { grid-template-columns: 1fr 1fr; } }
+#model .frame { margin-bottom: 28px; }
+.tscroll { overflow-x: auto; }
+table.bench.wide { min-width: 720px; }
+table.bench td.n { font-variant-numeric: tabular-nums; }
+table.bench tr.ours td { color: var(--accent); font-weight: 500; }
+.sub { font-size: 22px; font-weight: 500; margin: 48px 0 12px; }
+.winlose { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.winlose ul, ul.road { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+.winlose li, ul.road li { margin: 0 0 10px; }
+.winlose b, ul.road b { color: var(--paper); font-weight: 500; }
+@media (max-width: 800px) { .winlose { grid-template-columns: 1fr; } }
+
 
 /* references */
 .refs-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -228,6 +244,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       <a href="#why">Why</a>
       <a href="#metrics">Metrics</a>
       <a href="#built">Built</a>
+      <a href="#model">Model</a>
       <a href="#start">Start</a>
       <a href="#panel">Panel</a>
       <a href="#research">Research</a>
@@ -297,7 +314,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
         <article class="frame metric reveal"><span class="name">01 · pixel map</span><div class="box">
           <h3>Heatmap &amp; fog</h3><div class="range">WHERE PEOPLE LOOK</div>
           <dl><dt>What</dt><dd>Where viewers are predicted to fixate in the first seconds of free viewing. The fog map is the inverse: whatever stays fogged is likely missed.</dd>
-          <dt>How</dt><dd>UNISAL [26], a compact network trained on human fixations (SALICON [4]), picked by our eye-tracking benchmark as the most accurate model with an open licence. DeepGaze IIE [1] is an optional, more accurate and slower alternative.</dd>
+          <dt>How</dt><dd><a href="#model" style="color:var(--paper)">MediaAttention-Ads v1</a>: the compact UNISAL network [26], retrained on eye tracking of posters, ads and interfaces (UEyes [27]). On held-out posters it beats every open model we tested. Stock UNISAL and DeepGaze IIE [1] are optional alternatives.</dd>
           <dt>Do</dt><dd class="do">If your logo or offer sits in fog, move it, enlarge it or give it contrast.</dd></dl></div></article>
         <article class="frame metric reveal"><span class="name">02 · 0–100, higher is sharper</span><div class="box">
           <h3>Focus</h3><div class="range">CONCENTRATED OR SCATTERED</div>
@@ -355,7 +372,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       <h2 class="display sec-title reveal">How it's built</h2>
       <p class="sec-intro reveal">Openly published models stitched together with transparent maths. Each stage is small enough to read in one sitting and <b>swap out</b> when something better appears.</p>
       <ol class="pipe">
-        <li class="frame reveal"><span class="name">attention</span><div class="box"><h4>Predict attention</h4><p>A fixation-density map for the whole frame, calibrated to how people actually look.</p><div class="tech">UNISAL [26] · DeepGaze IIE [1] · spectral residual [3]</div></div></li>
+        <li class="frame reveal"><span class="name">attention</span><div class="box"><h4>Predict attention</h4><p>A fixation-density map for the whole frame, calibrated to how people actually look.</p><div class="tech">MediaAttention-Ads v1 · UNISAL [26] · DeepGaze IIE [1] · spectral residual [3]</div></div></li>
         <li class="frame reveal"><span class="name">layout</span><div class="box"><h4>Read the layout</h4><p>OCR finds every text line; size and button-shaped patches sort them into headline, body and CTA.</p><div class="tech">RapidOCR / PP-OCR [9]</div></div></li>
         <li class="frame reveal"><span class="name">objects</span><div class="box"><h4>Find brand &amp; product</h4><p>Open-vocabulary detection scores each role separately, so the logo can't steal the button's box.</p><div class="tech">OWLv2 [8]</div></div></li>
         <li class="frame reveal"><span class="name">metrics</span><div class="box"><h4>Score</h4><p>Focus, cognitive demand and AOI attention are numpy over the heatmap; memory is a separate network.</p><div class="tech">numpy · ResMem [10]</div></div></li>
@@ -366,7 +383,7 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       </ol>
 
       <div class="arch">
-        <div class="frame reveal"><span class="name">attention model · UNISAL (Droste et al., ECCV 2020)</span><div class="box" style="padding:18px"><svg viewBox="0 0 760 640" width="100%" role="img" aria-label="UNISAL architecture: MobileNetV2 encoder with Gaussian priors, a ConvGRU used only for video, a decoder with skip connections from the 1/16 and 1/8 scales, domain-specific adaptation and smoothing, and a log-softmax fixation density output"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8b8e98"/></marker></defs><rect x="40" y="20" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="44" class="t">Input image / frame</text><text x="54" y="63" class="s">RGB on a 32-px grid · ImageNet-normalised</text><rect x="40" y="110" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="134" class="t">MobileNetV2 encoder</text><text x="54" y="153" class="s">2.2M params · features at 1/8, 1/16, 1/32</text><rect x="40" y="200" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="224" class="t">⊕ 16 Gaussian prior maps</text><text x="54" y="243" class="s">learned 'where people look' priors</text><rect x="40" y="290" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="314" class="t">1×1 conv + BN → 256 ch</text><text x="54" y="333" class="s">post-encoder projection</text><rect x="400" y="290" width="320" height="56" fill="#101216" stroke="#2a2d35" stroke-dasharray="5 4"/><text x="414" y="314" class="t">Bypass-RNN · ConvGRU</text><text x="414" y="333" class="s">video only · state carried across frames</text><rect x="40" y="380" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="404" class="t">Decoder ↑×2, ↑×2</text><text x="54" y="423" class="s">inverted-residual blocks + skips</text><rect x="40" y="470" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="494" class="t">Domain adaptation + 41×41 smoothing</text><text x="54" y="513" class="s">SALICON branch for images, DHF1K for video</text><rect x="40" y="560" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="584" class="t">log-softmax → fixation density</text><text x="54" y="603" class="s">sums to 1 over the image</text><line x1="190" y1="76" x2="190" y2="108" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="166" x2="190" y2="198" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="256" x2="190" y2="288" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="346" x2="190" y2="378" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="436" x2="190" y2="468" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="526" x2="190" y2="558" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="340" y1="318" x2="398" y2="318" stroke="#8b8e98" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/><path d="M560 346 L560 408 L342 408" fill="none" stroke="#8b8e98" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/><text x="568" y="384" class="s">+ residual</text><path d="M340 130 L370 130 L370 392 L342 392" fill="none" stroke="#5c5f69" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ah)"/><path d="M340 150 L384 150 L384 420 L342 420" fill="none" stroke="#5c5f69" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ah)"/><text x="392" y="140" class="s">skips: 1/16 (160→128 ch), 1/8 (64 ch)</text><text x="400" y="590" class="s">3.7M parameters in total</text></svg></div></div>
+        <div class="frame reveal"><span class="name">attention model · MediaAttention-Ads v1, built on UNISAL (Droste et al., ECCV 2020)</span><div class="box" style="padding:18px"><svg viewBox="0 0 760 640" width="100%" role="img" aria-label="UNISAL architecture: MobileNetV2 encoder with Gaussian priors, a ConvGRU used only for video, a decoder with skip connections from the 1/16 and 1/8 scales, domain-specific adaptation and smoothing, and a log-softmax fixation density output"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8b8e98"/></marker></defs><rect x="40" y="20" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="44" class="t">Input image / frame</text><text x="54" y="63" class="s">RGB on a 32-px grid · ImageNet-normalised</text><rect x="40" y="110" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="134" class="t">MobileNetV2 encoder</text><text x="54" y="153" class="s">2.2M params · features at 1/8, 1/16, 1/32</text><rect x="40" y="200" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="224" class="t">⊕ 16 Gaussian prior maps</text><text x="54" y="243" class="s">learned 'where people look' priors</text><rect x="40" y="290" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="314" class="t">1×1 conv + BN → 256 ch</text><text x="54" y="333" class="s">post-encoder projection</text><rect x="400" y="290" width="320" height="56" fill="#101216" stroke="#2a2d35" stroke-dasharray="5 4"/><text x="414" y="314" class="t">Bypass-RNN · ConvGRU</text><text x="414" y="333" class="s">video only · state carried across frames</text><rect x="40" y="380" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="404" class="t">Decoder ↑×2, ↑×2</text><text x="54" y="423" class="s">inverted-residual blocks + skips</text><rect x="40" y="470" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="494" class="t">Domain adaptation + 41×41 smoothing</text><text x="54" y="513" class="s">image branch fine-tuned on UEyes · DHF1K for video</text><rect x="40" y="560" width="300" height="56" fill="#101216" stroke="#2a2d35"/><text x="54" y="584" class="t">log-softmax → fixation density</text><text x="54" y="603" class="s">sums to 1 over the image</text><line x1="190" y1="76" x2="190" y2="108" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="166" x2="190" y2="198" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="256" x2="190" y2="288" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="346" x2="190" y2="378" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="436" x2="190" y2="468" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="190" y1="526" x2="190" y2="558" stroke="#8b8e98" stroke-width="1.5" marker-end="url(#ah)"/><line x1="340" y1="318" x2="398" y2="318" stroke="#8b8e98" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/><path d="M560 346 L560 408 L342 408" fill="none" stroke="#8b8e98" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ah)"/><text x="568" y="384" class="s">+ residual</text><path d="M340 130 L370 130 L370 392 L342 392" fill="none" stroke="#5c5f69" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ah)"/><path d="M340 150 L384 150 L384 420 L342 420" fill="none" stroke="#5c5f69" stroke-width="1.2" stroke-dasharray="2 4" marker-end="url(#ah)"/><text x="392" y="140" class="s">skips: 1/16 (160→128 ch), 1/8 (64 ch)</text><text x="400" y="590" class="s">3.7M parameters in total</text></svg></div></div>
         <div class="frame reveal"><span class="name">how to read it</span><div class="box pad">
           <h4>One network, images and video</h4>
           <ul>
@@ -393,6 +410,44 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
             <svg id="timeline" viewBox="0 0 800 220" role="img" aria-label="Timeline: memory drops from about 97 to 86 at the cut at 3 seconds, focus stays near 76, cognitive demand stays under 11"></svg>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+
+  <section id="model">
+    <div class="wrap">
+      <h2 class="display sec-title reveal">Our model: MediaAttention-Ads v1</h2>
+      <p class="sec-intro reveal">Public attention models learned from photos of streets, animals and faces. Ads are type, logos, buttons and layout. So we retrained a compact network on <b>eye tracking of posters, ads and interfaces</b> (UEyes [27]). On held-out posters it matches human attention <b>52% better</b> than the best other open model, at a fraction of the size.</p>
+      <div class="hero-stats reveal">
+        <div><b>0.752</b><span>CC with human attention on held-out posters (best other open model: 0.496)</span></div>
+        <div><b>3.7M</b><span>parameters, vs 77M–452M for the alternatives</span></div>
+        <div><b>0.04 s</b><span>per image on a laptop (M3 Pro), 17–70× faster than DeepGaze</span></div>
+        <div><b>Apache-2.0</b><span>code and weights, <a href="https://huggingface.co/pranikz/MediaAttention-Ads">on Hugging Face ↗</a></span></div>
+      </div>
+
+      <div class="frame reveal"><span class="name">posters · UEyes test split, 27 images never used in training · 95% CI over images</span><div class="box pad"><div class="tscroll"><table class="bench"><thead><tr><th>Model</th><th>CC ↑</th><th>95% CI</th><th>NSS ↑</th><th>KLD ↓</th></tr></thead><tbody><tr class="ours"><td>MediaAttention-Ads v1 (ours)</td><td class="n">0.752</td><td class="n">[0.695, 0.809]</td><td class="n">1.55</td><td class="n">0.354</td></tr><tr><td>TranSalNet-Dense</td><td class="n">0.496</td><td class="n">[0.440, 0.551]</td><td class="n">0.98</td><td class="n">0.792</td></tr><tr><td>DeepGaze IIE</td><td class="n">0.458</td><td class="n">[0.392, 0.524]</td><td class="n">0.90</td><td class="n">0.894</td></tr><tr><td>UNISAL (stock)</td><td class="n">0.454</td><td class="n">[0.389, 0.518]</td><td class="n">0.90</td><td class="n">0.913</td></tr><tr><td>DeepGaze MSDB</td><td class="n">0.416</td><td class="n">[0.351, 0.481]</td><td class="n">0.86</td><td class="n">1.079</td></tr><tr><td>Spectral residual</td><td class="n">0.285</td><td class="n">[0.209, 0.361]</td><td class="n">0.58</td><td class="n">1.082</td></tr><tr><td>Centre-bias baseline</td><td class="n">0.281</td><td class="n">[0.218, 0.344]</td><td class="n">0.55</td><td class="n">0.949</td></tr></tbody></table></div></div></div>
+      <div class="frame reveal"><span class="name">all UEyes test categories · 108 images, eye tracking from 62 participants</span><div class="box pad"><div class="tscroll"><table class="bench wide"><thead><tr><th>Model</th><th>CC ↑</th><th>NSS ↑</th><th>sAUC ↑</th><th>SIM ↑</th><th>KLD ↓</th><th>poster CC</th><th>mobile CC</th><th>desktop CC</th><th>web CC</th></tr></thead><tbody><tr class="ours"><td>MediaAttention-Ads v1 (ours)</td><td class="n">0.735</td><td class="n">1.53</td><td class="n">0.731</td><td class="n">0.680</td><td class="n">0.399</td><td class="n">0.752</td><td class="n">0.820</td><td class="n">0.692</td><td class="n">0.674</td></tr><tr><td>TranSalNet-Dense</td><td class="n">0.514</td><td class="n">1.00</td><td class="n">0.646</td><td class="n">0.559</td><td class="n">0.771</td><td class="n">0.496</td><td class="n">0.601</td><td class="n">0.482</td><td class="n">0.476</td></tr><tr><td>UNISAL (stock)</td><td class="n">0.467</td><td class="n">0.92</td><td class="n">0.640</td><td class="n">0.543</td><td class="n">0.864</td><td class="n">0.454</td><td class="n">0.504</td><td class="n">0.456</td><td class="n">0.452</td></tr><tr><td>DeepGaze IIE</td><td class="n">0.454</td><td class="n">0.92</td><td class="n">0.667</td><td class="n">0.522</td><td class="n">0.871</td><td class="n">0.458</td><td class="n">0.460</td><td class="n">0.453</td><td class="n">0.445</td></tr><tr><td>DeepGaze MSDB</td><td class="n">0.452</td><td class="n">0.94</td><td class="n">0.690</td><td class="n">0.499</td><td class="n">1.039</td><td class="n">0.415</td><td class="n">0.530</td><td class="n">0.465</td><td class="n">0.397</td></tr><tr><td>Centre-bias baseline</td><td class="n">0.219</td><td class="n">0.40</td><td class="n">0.499</td><td class="n">0.447</td><td class="n">1.021</td><td class="n">0.281</td><td class="n">0.189</td><td class="n">0.190</td><td class="n">0.215</td></tr><tr><td>Spectral residual</td><td class="n">0.214</td><td class="n">0.44</td><td class="n">0.616</td><td class="n">0.433</td><td class="n">1.125</td><td class="n">0.285</td><td class="n">0.131</td><td class="n">0.270</td><td class="n">0.169</td></tr></tbody></table></div></div></div>
+      <div class="frame reveal"><span class="name">webpages · FiWI [28], 149 pages, out of domain for every model, ours included</span><div class="box pad"><div class="tscroll"><table class="bench wide"><thead><tr><th>Model</th><th>CC ↑</th><th>NSS ↑</th><th>sAUC ↑</th><th>SIM ↑</th><th>KLD ↓</th><th>pictorial CC</th><th>mixed CC</th><th>text CC</th></tr></thead><tbody><tr><td>DeepGaze MSDB</td><td class="n">0.676</td><td class="n">1.54</td><td class="n">0.748</td><td class="n">0.642</td><td class="n">0.462</td><td class="n">0.751</td><td class="n">0.686</td><td class="n">0.592</td></tr><tr><td>DeepGaze IIE</td><td class="n">0.649</td><td class="n">1.50</td><td class="n">0.729</td><td class="n">0.629</td><td class="n">0.504</td><td class="n">0.726</td><td class="n">0.680</td><td class="n">0.541</td></tr><tr class="ours"><td>MediaAttention-Ads v1 (ours)</td><td class="n">0.631</td><td class="n">1.27</td><td class="n">0.685</td><td class="n">0.617</td><td class="n">0.500</td><td class="n">0.653</td><td class="n">0.643</td><td class="n">0.597</td></tr><tr><td>UNISAL (stock)</td><td class="n">0.616</td><td class="n">1.31</td><td class="n">0.661</td><td class="n">0.613</td><td class="n">0.575</td><td class="n">0.676</td><td class="n">0.641</td><td class="n">0.531</td></tr><tr><td>TranSalNet-Dense</td><td class="n">0.608</td><td class="n">1.25</td><td class="n">0.646</td><td class="n">0.605</td><td class="n">0.603</td><td class="n">0.650</td><td class="n">0.642</td><td class="n">0.532</td></tr><tr><td>Centre-bias baseline</td><td class="n">0.345</td><td class="n">0.62</td><td class="n">0.500</td><td class="n">0.476</td><td class="n">0.899</td><td class="n">0.305</td><td class="n">0.373</td><td class="n">0.358</td></tr><tr><td>Spectral residual</td><td class="n">0.209</td><td class="n">0.40</td><td class="n">0.562</td><td class="n">0.449</td><td class="n">1.052</td><td class="n">0.220</td><td class="n">0.249</td><td class="n">0.159</td></tr></tbody></table></div></div></div>
+
+      <h3 class="sub reveal">How it was trained</h3>
+      <p class="sec-intro reveal">The UNISAL [26] network was started from its SALICON weights and fine-tuned on the 1,872 UEyes training images, with 10% held out to choose the epoch. The loss was KL divergence − CC against the fixation density, with AdamW at lr 3e-5 and batch norm frozen. Training took 8 epochs (~25 min on an M3 Pro), and held-out CC rose from 0.502 to 0.769. The test split and FiWI were never seen, and FiWI CC still rose from 0.616 to 0.631, so it generalises rather than memorises. Video keeps the stock UNISAL video branch.</p>
+
+      <h3 class="sub reveal">How it compares</h3>
+      <div class="frame reveal"><span class="name">architectures</span><div class="box pad"><div class="tscroll"><table class="bench wide"><thead><tr><th>Model</th><th>Architecture</th><th>Params</th><th>Trained on</th><th>Video</th><th>Licence</th><th>s / image (M3 Pro)</th><th>UEyes test CC</th><th>FiWI CC</th></tr></thead><tbody><tr class="ours"><td>MediaAttention-Ads v1 (ours)</td><td>UNISAL: MobileNetV2 encoder, Gaussian priors, ConvGRU (video), decoder with skips</td><td class="n">3.7M</td><td>SALICON → fine-tuned on UEyes (posters, ads, UIs)</td><td>yes (recurrent)</td><td>Apache-2.0</td><td class="n">0.04</td><td class="n">0.735</td><td class="n">0.631</td></tr><tr><td>UNISAL (stock)</td><td>same as above</td><td class="n">3.7M</td><td>SALICON, DHF1K, Hollywood-2, UCF Sports</td><td>yes (recurrent)</td><td>Apache-2.0</td><td class="n">0.04</td><td class="n">0.467</td><td class="n">0.616</td></tr><tr><td>TranSalNet-Dense</td><td>DenseNet-161 CNN + transformer encoder + CNN decoder</td><td class="n">76.6M</td><td>SALICON</td><td>no</td><td>MIT</td><td class="n">0.10</td><td class="n">0.514</td><td class="n">0.608</td></tr><tr><td>DeepGaze IIE</td><td>ensemble of 4 backbones (DenseNet-201, ResNeXt-50, EfficientNet-B5, ShapeNet-ResNet-50) + readout</td><td class="n">104.0M</td><td>SALICON → MIT1003</td><td>no</td><td>no licence file</td><td class="n">0.67</td><td class="n">0.454</td><td class="n">0.649</td></tr><tr><td>DeepGaze MSDB</td><td>CLIP RN50x64 + DINOv2 ViT-B/14 at several scales + readout, dataset-bias parameters</td><td class="n">451.6M</td><td>MIT1003, CAT2000, COCO-Freeview, DAEMONS, FIGRIM</td><td>no</td><td>no licence file</td><td class="n">2.90</td><td class="n">0.452</td><td class="n">0.676</td></tr><tr><td>Neurons (commercial, for reference)</td><td>CNN encoder–decoder (ConvNeXt / ResNet-50 components), per its public tech paper</td><td>not disclosed</td><td>proprietary eye tracking (~20k participants)</td><td>separate video model</td><td>closed</td><td class="n">–</td><td>not runnable</td><td>not runnable</td></tr></tbody></table></div></div></div>
+      <div class="winlose">
+        <div class="frame reveal"><span class="name">where we win</span><div class="box pad"><ul>
+          <li><b>Ads, posters and UIs.</b> First in every UEyes category, by 0.19–0.26 CC.</li>
+          <li><b>Text-heavy layouts.</b> Best of all models on FiWI's text pages (0.597).</li>
+          <li><b>Size and speed.</b> 20–120× smaller; a 1,000-ad batch in under a minute on a laptop.</li>
+          <li><b>One network for images and video.</b></li>
+          <li><b>Licence.</b> Apache-2.0 end to end; the DeepGaze models have no licence file.</li>
+        </ul></div></div>
+        <div class="frame reveal"><span class="name">where we don't (yet)</span><div class="box pad"><ul>
+          <li><b>Photo-led creatives.</b> DeepGaze MSDB [29] is still ~0.05 CC ahead on FiWI and further ahead on pictorial pages.</li>
+          <li><b>Video is not ad-tuned.</b> There is no open ad-video eye-tracking set yet.</li>
+          <li><b>One panel.</b> UEyes is 62 participants in one country, free viewing in a lab. A one-second glance in a feed is different.</li>
+        </ul></div></div>
       </div>
     </div>
   </section>
@@ -455,21 +510,38 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
       <h2 class="display sec-title reveal">Honest limits</h2>
       <p class="sec-intro reveal">Predictions are a fast first filter, not a substitute for testing with real people when the stakes are high.</p>
       <ul class="limits">
-        <li><b>Trained on natural images, not ads.</b> The attention model learned from public eye-tracking datasets and can be less sharp on text-heavy creatives.</li>
+        <li><b>One lab panel.</b> The image model is tuned on UEyes: 62 participants, free viewing, a lab eye tracker. Feed glances are shorter and busier. Video attention is not ad-tuned yet.</li>
         <li><b>No emotion scores yet.</b> Engagement, trust and intent need human response data that hasn't been released openly. They're on the roadmap, not faked.</li>
         <li><b>Layout rules, not a layout model.</b> A headline smaller than its body copy, a ghost button or a centred logo can fool AOI detection; pass your own boxes then.</li>
         <li><b>Targets are only as good as your corpus.</b> <span class="mono">bench</span> ranks ads by their own scores; rank by real KPIs (CTR, recall) when you have them.</li>
         <li><b>Memory scores cluster high</b>, and ResMem's weights are <b>non-commercial</b>, which is why it's an optional extra.</li>
-        <li><b>Check model licences.</b> The default model, UNISAL, is Apache-2.0. The optional DeepGaze IIE's repository has no licence file (all rights reserved by default) and ResMem is non-commercial. Both are downloaded from their authors at runtime, never redistributed here.</li>
+        <li><b>Check model licences.</b> The default model, MediaAttention-Ads v1 (a UNISAL fine-tune on UEyes, CC BY 4.0), is Apache-2.0. The optional DeepGaze IIE's repository has no licence file (all rights reserved by default) and ResMem is non-commercial. Both are downloaded from their authors at runtime, never redistributed here.</li>
         <li><b>Video has no audio.</b> Sound, voice-over and music drive attention in video and aren't modelled.</li>
       </ul>
+    </div>
+  </section>
+
+
+  <section id="roadmap">
+    <div class="wrap">
+      <h2 class="display sec-title reveal">Roadmap</h2>
+      <div class="steps">
+        <div class="frame step reveal"><span class="name">shipped</span><div class="box"><ul class="road">
+          <li>Image &amp; video scoring, AOI tracking, cut detection</li><li>bench &amp; KPI calibration</li><li>Memory score (ResMem)</li>
+          <li>FiWI + UEyes benchmarks, 7 models, with CIs</li><li><b>MediaAttention-Ads v1</b></li><li>Open panel kit (webcam eye tracking, implicit tests)</li></ul></div></div>
+        <div class="frame step reveal"><span class="name">next</span><div class="box"><ul class="road">
+          <li>Ad-video attention: tune the video branch on ad eye tracking</li><li>Feed context and 1–2 s exposures</li>
+          <li>Commercial-friendly memory model</li><li>v2: distil DeepGaze MSDB on photos while keeping the design data</li></ul></div></div>
+        <div class="frame step reveal"><span class="name">later</span><div class="box"><ul class="road">
+          <li>Emotion, engagement and trust models from panel data</li><li>Audio for video ads</li><li>An open, growing ad eye-tracking dataset from contributed studies</li></ul></div></div>
+      </div>
     </div>
   </section>
 
   <section id="research">
     <div class="wrap">
       <h2 class="display sec-title reveal">Research &amp; credits</h2>
-      <p class="sec-intro reveal">MediaAttention exists because these researchers published their methods, data and models. If you use it in your work, <b>please cite the papers</b> behind the parts you rely on. The <a href="research/MediaAttention-report.pdf" style="color:var(--paper)">research report</a> reviews 15 commercial tools and benchmarks six open models against human eye tracking.</p>
+      <p class="sec-intro reveal">MediaAttention exists because these researchers published their methods, data and models. If you use it in your work, <b>please cite the papers</b> behind the parts you rely on. The <a href="research/MediaAttention-report.pdf" style="color:var(--paper)">research report</a> reviews 15 commercial tools and benchmarks seven open models, ours included, against human eye tracking on webpages, posters and interfaces.</p>
       <div class="refs-wrap">
         <div class="frame reveal"><span class="name">attention &amp; saliency</span><div class="box"><ol class="refs">
           <li data-n="1">Linardos, A., Kümmerer, M., Press, O. &amp; Bethge, M. (2021). <i>DeepGaze IIE: Calibrated prediction in and out-of-domain for state-of-the-art saliency modeling.</i> ICCV. <a href="https://arxiv.org/abs/2105.12441">arXiv:2105.12441</a><span class="used">used: attention heatmap</span></li>
@@ -480,6 +552,10 @@ body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-in
           <li data-n="6">Bylinskii, Z., Judd, T., Oliva, A., Torralba, A. &amp; Durand, F. (2019). <i>What do different evaluation metrics tell us about saliency models?</i> IEEE TPAMI 41(3). <a href="https://arxiv.org/abs/1604.03605">arXiv:1604.03605</a><span class="used">used: metric choice (CC, SIM, KLD)</span></li>
           <li data-n="7">Tatler, B. W. (2007). <i>The central fixation bias in scene viewing: Selecting an optimal viewing position independently of motor biases and image feature distributions.</i> Journal of Vision 7(14). <a href="https://doi.org/10.1167/7.14.4">doi</a><span class="used">used: centre-bias prior</span></li>
           <li data-n="26">Droste, R., Jiao, J. &amp; Noble, J. A. (2020). <i>Unified image and video saliency modeling.</i> ECCV. <a href="https://arxiv.org/abs/2003.05477">arXiv:2003.05477</a><span class="used">used: attention heatmap (default model)</span></li>
+          <li data-n="27">Jiang, Y., Leiva, L. A., Rezazadegan Tavakoli, H., Houssel, P. R. B., Kylmälä, J. &amp; Oulasvirta, A. (2023). <i>UEyes: Understanding visual saliency across user interface types.</i> CHI. <a href="https://doi.org/10.1145/3544548.3581096">doi</a><span class="used">used: training data for MediaAttention-Ads; benchmark (CC BY 4.0)</span></li>
+          <li data-n="28">Shen, C. &amp; Zhao, Q. (2014). <i>Webpage saliency.</i> ECCV.<span class="used">used: benchmark (FiWI)</span></li>
+          <li data-n="29">Kümmerer, M., Khanuja, H. S. &amp; Bethge, M. (2025). <i>Modeling saliency dataset bias</i> (DeepGaze MSDB). <a href="https://arxiv.org/abs/2505.10169">arXiv:2505.10169</a><span class="used">used: benchmark comparison</span></li>
+          <li data-n="30">Lou, J., Lin, H., Marshall, D., Saupe, D. &amp; Liu, H. (2022). <i>TranSalNet: Towards perceptually relevant visual saliency prediction.</i> Neurocomputing 494. <a href="https://arxiv.org/abs/2110.03593">arXiv:2110.03593</a><span class="used">used: benchmark comparison</span></li>
         </ol></div></div>
 
         <div class="frame reveal"><span class="name">layout, text &amp; objects · memorability</span><div class="box"><ol class="refs">

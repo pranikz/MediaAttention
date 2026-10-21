@@ -1,6 +1,6 @@
 [project]
 name = "mediaattention"
-version = "0.2.0"
+version = "0.2.1"
 description = "Open-source attention prediction and creative scoring for image and video ads"
 readme = "README.md"
 license = "Apache-2.0"

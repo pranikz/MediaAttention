@@ -59,6 +59,9 @@ def deepgaze(img, dev=None):
 
 
 UNISAL_REPO = "pranikz/MediaAttention"  # UNISAL weights + config, redistributed under Apache-2.0
+ADS_REPO = "pranikz/MediaAttention-Ads"  # MediaAttention-Ads: UNISAL fine-tuned on UEyes design eye tracking
+WEIGHTS = {"salicon": (UNISAL_REPO, "unisal_salicon.pth"), "ads": (ADS_REPO, "ads-v1.pth")}
+DEFAULT_IMAGE_MODEL = "ads"
 
 
 def _unisal_size(h, w):
@@ -70,7 +73,7 @@ def _unisal_size(h, w):
 
 
 @cache
-def _unisal(dev):
+def _unisal(dev, weights="salicon"):
     import json
 
     import torch
@@ -82,8 +85,8 @@ def _unisal(dev):
     cfg["verbose"] = 0
     m = UNISAL(**cfg)
     # MA_UNISAL_WEIGHTS: a local state dict (e.g. a fine-tuned model) instead of the published SALICON weights
-    weights = os.environ.get("MA_UNISAL_WEIGHTS") or hf_hub_download(UNISAL_REPO, "unisal_salicon.pth")
-    m.load_state_dict(torch.load(weights, map_location="cpu"))
+    path = os.environ.get("MA_UNISAL_WEIGHTS") or hf_hub_download(*WEIGHTS[weights])
+    m.load_state_dict(torch.load(path, map_location="cpu"))
     return m.to(dev).eval()
 
 
@@ -95,14 +98,14 @@ def _unisal_input(img, size):
     return torch.tensor(x.transpose(2, 0, 1), dtype=torch.float32)
 
 
-def unisal(img, dev=None):
-    """UNISAL (Droste et al., ECCV 2020), SALICON weights: the default. Apache-2.0, ~4M params."""
+def unisal(img, dev=None, weights="salicon"):
+    """UNISAL (Droste et al., ECCV 2020), 3.7M params, Apache-2.0. weights: "salicon" (stock) or "ads"."""
     import torch
     dev = dev or device()
     h, w = img.height, img.width
     x = _unisal_input(img, _unisal_size(h, w))[None, None].to(dev)
     with torch.no_grad():
-        logd = _unisal(dev)(x, target_size=(h, w), source="SALICON", static=True)
+        logd = _unisal(dev, weights)(x, target_size=(h, w), source="SALICON", static=True)
     return np.exp(logd[0, 0, 0].float().cpu().numpy())
 
 
@@ -122,12 +125,17 @@ class UnisalVideo:
         import torch
         x = torch.stack([_unisal_input(f, self.input_size) for f in frames])[None].to(self.dev)
         with torch.no_grad():
-            logd, self.h0 = _unisal(self.dev)(x, target_size=self.size[::-1], h0=self.h0, return_hidden=True,
+            logd, self.h0 = _unisal(self.dev, "salicon")(x,  # tuning was image-only: video keeps stock weights target_size=self.size[::-1], h0=self.h0, return_hidden=True,
                                               source="DHF1K", static=False)
         return np.exp(logd[0, -1, 0].float().cpu().numpy())
 
 
-MODELS = {"unisal": unisal, "deepgaze": deepgaze, "spectral": spectral_residual}
+def ads(img, dev=None):
+    """MediaAttention-Ads v1: UNISAL fine-tuned on UEyes posters, ads and UIs. The default for images."""
+    return unisal(img, dev, weights="ads")
+
+
+MODELS = {"ads": ads, "unisal": unisal, "deepgaze": deepgaze, "spectral": spectral_residual}
 
 
 def resolve(model="auto"):
@@ -137,7 +145,7 @@ def resolve(model="auto"):
     try:
         import huggingface_hub  # noqa: F401
         import torch  # noqa: F401
-        return "unisal"
+        return DEFAULT_IMAGE_MODEL
     except ImportError:
         return "spectral"
 
