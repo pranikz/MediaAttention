@@ -1,4 +1,6 @@
 """Attention heatmap prediction. Returns an (H, W) float map at the image's size."""
+import contextlib
+import sys
 from functools import cache
 
 import numpy as np
@@ -32,7 +34,8 @@ def center_bias(shape, sigma=0.3):
 @cache
 def _deepgaze(device):
     import deepgaze_pytorch
-    return deepgaze_pytorch.DeepGazeIIE(pretrained=True).float().to(device).eval()  # MPS has no float64
+    with contextlib.redirect_stdout(sys.stderr):  # it prints load messages, keep stdout clean JSON
+        return deepgaze_pytorch.DeepGazeIIE(pretrained=True).float().to(device).eval()  # MPS has no float64
 
 
 def deepgaze(img, device=None):

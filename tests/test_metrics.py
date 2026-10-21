@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 
 from mediaattention import score
+from mediaattention.detect import text_roles
 from mediaattention.metrics import aoi_stats, cognitive_demand, focus, impact_score
 
 
@@ -38,3 +39,15 @@ def test_end_to_end_spectral():
     assert heat.shape == (200, 300)
     assert report["aois"][0]["lift"] > 2
     assert report["impact_score"] is not None
+
+
+def test_text_roles():
+    # page with a big headline, a body line, a wordmark and a red button behind "SHOP NOW"
+    rgb = np.full((400, 400, 3), 240, np.uint8)
+    rgb[300:360, 40:240] = (200, 40, 40)
+    lines = [([40, 60, 360, 120], "Run further"), ([40, 150, 360, 170], "Recycled foam and all-day comfort"),
+             ([60, 315, 220, 345], "SHOP NOW"), ([300, 10, 360, 30], "NOVA")]
+    cta, headline, other = text_roles(lines, rgb)
+    assert cta == [[40, 300, 239, 359]]  # grown from the text out to the button edges
+    assert headline == [[40, 60, 360, 120]]
+    assert [t for _, t in other] == ["Recycled foam and all-day comfort", "NOVA"]

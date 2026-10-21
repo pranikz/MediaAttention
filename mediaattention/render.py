@@ -1,5 +1,5 @@
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 
 def _unit(heat):
@@ -19,3 +19,16 @@ def fog_overlay(img, heat):
     v = _unit(heat)
     fog = np.dstack([np.ones_like(v)] * 3 + [(1 - np.sqrt(v)) * 0.92])
     return Image.alpha_composite(img.convert("RGBA"), Image.fromarray((fog * 255).astype(np.uint8)))
+
+
+def aoi_overlay(img, heat, aois):
+    """Heatmap with each AOI boxed and labelled with its share of attention."""
+    out = heat_overlay(img, heat)
+    d, (w, h) = ImageDraw.Draw(out), out.size
+    font = ImageFont.load_default(size=max(14, w // 50))
+    for a in aois:
+        x0, y0, x1, y1 = a["box"][0] * w, a["box"][1] * h, a["box"][2] * w, a["box"][3] * h
+        d.rectangle((x0, y0, x1, y1), outline=(0, 120, 255, 255), width=max(2, w // 300))
+        d.text((x0 + 4, y0 + 2), f"{a['label']} {a['attention_pct']}%", font=font, fill=(0, 120, 255, 255),
+               stroke_width=2, stroke_fill=(255, 255, 255, 255))
+    return out

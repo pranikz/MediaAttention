@@ -15,16 +15,16 @@ It's an open alternative to proprietary "neuro-prediction" tools. The methods ar
 ```bash
 pip install -e .                 # core: spectral-residual fallback, no ML deps
 pip install -e ".[deepgaze]"     # DeepGaze IIE attention model (recommended)
-pip install -e ".[aoi]"          # automatic AOI detection (OWLv2)
+pip install -e ".[aoi]"          # automatic AOI detection (OCR + OWLv2)
 ```
 
 ## Use
 
 ```bash
-mediaattention ad.png --aoi auto --out report/
+mediaattention ad.png --aoi auto --product "a running shoe" --out report/
 ```
 
-This writes `report/heat.png`, `report/fog.png` and `report/scores.json`:
+This writes `report/heat.png`, `report/fog.png`, `report/aois.png` (heatmap with each AOI boxed and its attention %) and `report/scores.json`:
 
 ```json
 {
@@ -55,6 +55,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 | Heatmap | DeepGaze IIE with a Gaussian center-bias prior. Fallback: spectral residual (Hou & Zhang 2007). |
 | Focus | Share of the image needed to hold 80% of predicted attention, mapped to 0–100 (an attention-dispersion measure). |
 | Cognitive Demand | Mean Shannon entropy of 16×16 blocks of the grayscale image (32 levels), normalized to 0–100. |
+| AOI detection | OCR (RapidOCR) reads every text line. A short line on a solid colour patch is the CTA, and the box grows out to the button's edges. The largest text is the headline, and the rest is body. Logo and product come from OWLv2 zero-shot detection (`--product` says what to look for). If OWLv2 is unsure about the logo, a short text line in the top or bottom band is used instead. |
 | AOI attention % | Sum of heatmap mass inside the box. |
 | Impact Score | 10 inside the recommended range; outside, it falls linearly from 7 at the edge to 1 at the end of the scale. The final score is the mean over available metrics, and missing AOIs are skipped. |
 
@@ -62,6 +63,7 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 
 - The attention model is trained on public natural-image eye-tracking data (SALICON, MIT1003), not ads. Expect it to be weaker on text-heavy creatives than an ad-specific model.
 - **The default recommended ranges are placeholders.** The Impact Score only means something once you calibrate the ranges on a corpus. The intended method is the top 20% of scores per industry/use case.
+- AOI detection relies on layout rules. Ads that break them (a headline smaller than the body text, an outlined ghost button, a logo in the middle of the ad) need `--aoi aois.json`.
 - No emotion, engagement or trust scores yet. These need human response data, which nobody has released openly so far (see the roadmap).
 
 ## Roadmap
@@ -77,6 +79,6 @@ heat, report = score(Image.open("ad.png"), model="deepgaze")
 The code is Apache-2.0. Model weights are downloaded at runtime and keep their own terms:
 
 - DeepGaze IIE code is MIT; its weights are trained on SALICON/MIT1003.
-- OWLv2 is Apache-2.0.
+- OWLv2 and RapidOCR are Apache-2.0.
 
 Check the dataset terms before any commercial use.
