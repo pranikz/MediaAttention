@@ -15,10 +15,14 @@ def bench_main(argv):
     ap.add_argument("--model", choices=["auto", "unisal", "deepgaze", "spectral"], default="auto")
     ap.add_argument("--fps", type=float, default=2.0, help="video: frames scored per second")
     ap.add_argument("--min-n", type=int, default=5, help="skip metrics seen in fewer assets than this")
+    ap.add_argument("--kpi", help="CSV of campaign results: a 'file' column plus KPI columns (e.g. ctr, recall)")
+    ap.add_argument("--kpi-column", help="which KPI column to rank by (default: the first one)")
+    ap.add_argument("--kpi-lower-better", action="store_true", help="lower KPI is better (e.g. CPC, CPA)")
     ap.add_argument("--out", default="mediaattention-bench")
     a = ap.parse_args(argv)
     from .bench import bench
-    ranges, n, skipped = bench(a.folder, a.out, aois=a.aoi, product=a.product, model=a.model, fps=a.fps, min_n=a.min_n)
+    ranges, n, skipped = bench(a.folder, a.out, aois=a.aoi, product=a.product, model=a.model, fps=a.fps, min_n=a.min_n,
+                               kpi=a.kpi, kpi_column=a.kpi_column, kpi_lower_better=a.kpi_lower_better)
     print(json.dumps({"assets": n, "skipped": skipped, "ranges": ranges}, indent=2))
 
 

@@ -75,7 +75,7 @@ def analyse(path, auto_aoi, product, model, fps, bench_file):
     )
 
 
-def calibrate(files, auto_aoi, product, model, fps, min_n, progress=None):
+def calibrate(files, auto_aoi, product, model, fps, min_n, kpi_file=None, kpi_column="", kpi_lower=False, progress=None):
     """Gradio handler for the Calibrate tab: bench the uploaded files, hand benchmarks.json to the Analyse tab."""
     import gradio as gr
     import pandas as pd
@@ -84,8 +84,12 @@ def calibrate(files, auto_aoi, product, model, fps, min_n, progress=None):
         raise gr.Error("Upload some ads first: select several files, or a whole folder.")
     out = Path(tempfile.mkdtemp(prefix="mediaattention-bench-"))
     step = (lambda i, n, p: progress((i - 1) / n, desc=f"Scoring {Path(p).name} ({i}/{n})")) if progress else None
-    ranges, n, skipped = bench_files(sorted(files), out, "auto" if auto_aoi else None, product or None, model, fps,
-                                     int(min_n), on_file=step)
+    try:
+        ranges, n, skipped = bench_files(sorted(files), out, "auto" if auto_aoi else None, product or None, model, fps,
+                                         int(min_n), on_file=step, kpi=kpi_file, kpi_column=kpi_column or None,
+                                         kpi_lower_better=kpi_lower)
+    except ValueError as e:  # bad or too-small KPI file
+        raise gr.Error(str(e))
     if not n:
         raise gr.Error("None of the files could be scored. Are they images or videos?")
     md = f"### {n} assets scored"
@@ -93,8 +97,15 @@ def calibrate(files, auto_aoi, product, model, fps, min_n, progress=None):
         md += f"\nSkipped (unreadable): {', '.join(skipped)}"
     if n < 30:
         md += f"\n\n**Only {n} assets.** Ranges get stable around 30+ per category."
+    if kpi_file and (out / "kpi_report.json").exists():
+        rep = json.loads((out / "kpi_report.json").read_text())
+        md += (f"\n\nTargets come from your **top {rep['winners']} ads by {rep['kpi']}** "
+               f"({rep['assets_with_kpi']} matched). Metrics that track {rep['kpi']} (Spearman ρ, p):\n\n")
+        md += "\n".join(f"- {_label(m)}: ρ = {c['spearman_rho']:+.2f} (p = {c['p']:.3f})"
+                         for m, c in list(rep["correlation_with_kpi"].items())[:6])
     md += "\n\nThese targets are now loaded in the **Analyse** tab."
-    table = pd.DataFrame([{"Metric": _label(k), "Target": f"{lo}–{hi}", "Rule": "middle 50%" if k in TWO_SIDED else "top 20%"}
+    rule = (lambda k: "winners' middle 50%") if kpi_file else (lambda k: "middle 50%" if k in TWO_SIDED else "top 20%")
+    table = pd.DataFrame([{"Metric": _label(k), "Target": f"{lo}–{hi}", "Rule": rule(k)}
                           for k, (lo, hi) in ranges.items()])
     bench_json = str(out / "benchmarks.json")
     return md, gr.Dataframe(table, visible=True), gr.File(bench_json, visible=True), bench_json
@@ -142,13 +153,19 @@ def build():
                     c_model = gr.Dropdown(["auto", "unisal", "deepgaze", "spectral"], value="auto", label="Attention model")
                     c_fps = gr.Slider(0.5, 10, value=2, step=0.5, label="Video: frames scored per second")
                     c_min_n = gr.Number(value=5, precision=0, label="Skip metrics seen in fewer assets than")
+                with gr.Accordion("Campaign results (optional)", open=False):
+                    gr.Markdown("A CSV with a `file` column (the ad's filename) and KPI columns such as `ctr` or `cpc`. "
+                                "Targets then come from your best-performing ads, and you see which metrics track the KPI.")
+                    c_kpi = gr.File(label="KPI CSV", file_types=[".csv"], type="filepath")
+                    c_kpi_col = gr.Textbox(label="KPI column", placeholder="default: the first KPI column")
+                    c_kpi_lower = gr.Checkbox(label="Lower is better (CPC, CPA)")
                 c_run = gr.Button("Build targets", variant="primary")
             with gr.Column(scale=2):
                 c_summary = gr.Markdown()
                 c_table = gr.Dataframe(label="Target ranges", interactive=False, visible=False)
                 c_download = gr.File(label="benchmarks.json", visible=False)
         c_run.click(lambda *a, progress=gr.Progress(): calibrate(*a, progress=progress),
-                    [corpus, c_aoi, c_product, c_model, c_fps, c_min_n],
+                    [corpus, c_aoi, c_product, c_model, c_fps, c_min_n, c_kpi, c_kpi_col, c_kpi_lower],
                     [c_summary, c_table, c_download, bench_file], api_name="calibrate")
     return demo
 

@@ -80,6 +80,18 @@ mediaattention new_ad.png --aoi auto --benchmarks bench/benchmarks.json
 - **Cognitive Demand:** the middle 50%, because moderate complexity works best.
 - **Body-text attention:** excluded, because it doesn't predict results.
 
+**Have campaign results?** Pass them in and the targets come from your best-*performing* ads instead of your best-*scoring* ones:
+
+```bash
+mediaattention bench ads/fmcg-social/ --aoi auto --kpi results.csv --kpi-column ctr --out bench/
+```
+
+- **Format:** `results.csv` has a `file` column (the ad's filename, or its path inside the folder) plus KPI columns such as `ctr`, `recall` or `cpc`. Add `--kpi-lower-better` for costs like CPC or CPA.
+- **Targets:** each metric's target becomes the middle 50% of what your top 20% of ads by that KPI scored.
+- **`kpi_report.json`:** shows which metrics actually track the KPI for your ads (Spearman ρ and p-value).
+- **Web UI:** the Calibrate tab takes the same CSV.
+- **Size:** you need at least 25 ads with a KPI, so there are 5 winners.
+
 ### Video
 
 ```bash
@@ -149,7 +161,7 @@ The full write-up, including a review of 15 commercial tools and what their accu
 ## Honest limitations
 
 - The attention model is trained on public natural-image eye-tracking data (SALICON; DHF1K for video), not ads. Expect it to be weaker on text-heavy creatives than an ad-specific model.
-- **The default recommended ranges are placeholders.** Run `bench` on your own ads to calibrate them. `bench` ranks assets by the metric itself, not by real results; once you have campaign KPIs (CTR, recall), rank by those instead.
+- **The default recommended ranges are placeholders.** Run `bench` on your own ads to calibrate them. Without `--kpi`, `bench` ranks assets by the metric itself, not by real results. Pass campaign KPIs (CTR, recall) when you have them.
 - AOI detection relies on layout rules. Ads that break them (a headline smaller than the body text, an outlined ghost button, a logo in the middle of the ad) need `--aoi aois.json`.
 - **Video mode is not yet validated on ad video.** Published results on TV ads favour video models over frame-by-frame prediction (CC 0.56 vs 0.23, Ye & Wedel 2026), but UNISAL's video mode hasn't been benchmarked on ad eye tracking here. Use `--per-frame` to compare. Video has no audio model.
 - No emotion, engagement or trust scores yet. These need human response data, which nobody has released openly so far (see the roadmap).
@@ -159,7 +171,7 @@ The full write-up, including a review of 15 commercial tools and what their accu
 - [x] Video: per-frame scoring, first/last-2s windows, scene-cut detection
 - [x] Video: track AOIs within a shot
 - [x] `mediaattention bench <folder>`: build recommended ranges from your own corpus
-- [ ] `bench` ranked by real KPIs (CTR, recall) when you have them
+- [x] `bench --kpi`: targets from your best-performing ads, plus which metrics track the KPI
 - [x] Memory score (ResMem)
 - [ ] Commercial-friendly memory model (retrain on openly licensed data)
 - [x] Eye-tracking benchmark of the open models (FiWI webpages; see Benchmark)

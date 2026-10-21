@@ -170,3 +170,19 @@ def test_video_clip_frames_end_with_the_sample(tmp_path):
     assert len(got) == 4  # samples at 0, 0.5, 1.0, 1.5 s
     for t, img, cut, grays, clip in got[1:]:
         assert 2 <= len(clip) <= 4 and clip[-1] is img  # ~6 fps between samples, ending on the sample
+
+
+def test_bench_ranges_from_kpi():
+    from mediaattention.bench import ranges_from_kpi
+    rng = np.random.default_rng(0)
+    by_file, kpis = {}, {}
+    for i in range(50):  # focus drives CTR; cognitive demand is noise
+        focus = rng.uniform(40, 95)
+        by_file[f"ad{i}.png"] = {"focus": focus, "cognitive_demand": rng.uniform(10, 60)}
+        kpis[f"ad{i}.png"] = focus / 100 + rng.normal(0, 0.05)
+    ranges, report = ranges_from_kpi(by_file, kpis)
+    assert report["winners"] == 10 and ranges["focus"][0] > 70  # winners are the high-focus ads
+    corr = report["correlation_with_kpi"]
+    assert corr["focus"]["spearman_rho"] > 0.7 and abs(corr["cognitive_demand"]["spearman_rho"]) < 0.4
+    _, low = ranges_from_kpi(by_file, {f: -v for f, v in kpis.items()}, lower_better=True)
+    assert low["correlation_with_kpi"]["focus"]["spearman_rho"] > 0.7  # e.g. CPC: lower is better
