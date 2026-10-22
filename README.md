@@ -1,21 +1,70 @@
-# MediaAttention
+<p align="center">
+  <img src="docs/img/readme/hero.jpg" alt="MediaAttention: an ad next to its predicted attention heatmap" width="100%">
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/mediaattention)](https://pypi.org/project/mediaattention/) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23540409.svg)](https://doi.org/10.5281/zenodo.23540409)
+<p align="center">
+  <a href="https://pypi.org/project/mediaattention/"><img src="https://img.shields.io/pypi/v/mediaattention?color=5b8cff&label=pypi" alt="PyPI"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-5b8cff" alt="Python 3.10+">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-5b8cff" alt="License"></a>
+  <a href="https://huggingface.co/pranikz/MediaAttention-Ads"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20model-MediaAttention--Ads%20v1-5b8cff" alt="Hugging Face model"></a>
+  <a href="https://doi.org/10.5281/zenodo.23540409"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.23540409.svg" alt="DOI"></a>
+</p>
 
-**Site:** https://pranikz.github.io/MediaAttention/ · **Model on Hugging Face:** [MediaAttention-Ads v1](https://huggingface.co/pranikz/MediaAttention-Ads) · **Research report (PDF):** [docs/research/MediaAttention-report.pdf](docs/research/MediaAttention-report.pdf)
+<p align="center">
+  <b><a href="https://pranikz.github.io/MediaAttention/">Website</a></b> ·
+  <b><a href="https://huggingface.co/pranikz/MediaAttention-Ads">Model</a></b> ·
+  <b><a href="docs/research/MediaAttention-report.pdf">Research report (PDF)</a></b> ·
+  <b><a href="#run-your-own-study">Run your own eye-tracking study</a></b>
+</p>
 
-Open-source predicted attention for ads and media. Give it an image or video creative and it predicts where people will look, then scores it:
+**MediaAttention predicts where people will look at your ad, then tells you whether it works.** Drop in an image or a video and get an attention heatmap plus scores for focus, clutter, memorability, and how much of the attention lands on your brand, product, headline and call to action. Everything is open: the code, the model, the benchmarks and the maths. It's an open alternative to proprietary "neuro-prediction" tools.
 
-- **Attention heatmap and fog map**: where the eye lands in the first seconds
-- **Focus** (0–100): attention on a few elements (high) vs. scattered everywhere (low)
-- **Cognitive Demand** (0–100): visual complexity, measured as local Shannon entropy
-- **Memory** (0–100, optional): predicted share of viewers who would recognise the creative after a brief exposure
-- **AOI attention**: % of attention on brand, product, headline and CTA, plus *lift* (attention share ÷ area share)
-- **Impact Score** (1–10): each metric is scored against a recommended range, then averaged
+<p align="center">
+  <img src="docs/img/readme/pipeline.jpg" alt="An example ad, its predicted attention, the fog of what viewers miss, and scored brand, headline and CTA boxes" width="100%">
+</p>
 
-It's an open alternative to proprietary "neuro-prediction" tools. The methods are documented and the numbers are reproducible.
+## Quick start
 
-**New in 0.2.1: MediaAttention-Ads v1**, our own attention model, fine-tuned on eye tracking of posters, ads and interfaces. On held-out posters it reaches **CC 0.752** with human attention, vs 0.496 for the best other open model. That is a **+52% gain** with non-overlapping 95% confidence intervals, from a 3.7M-parameter network that runs in 0.04 s per image. See [Benchmark](#benchmark).
+```bash
+pip install "mediaattention[all]"
+mediaattention ad.png --aoi auto --out report/   # heatmap, fog, AOIs and scores.json
+mediaattention ui                                # or use the local web UI
+```
+
+| You get | What it tells you |
+|---|---|
+| **Heatmap & fog** | Where the eye lands in the first seconds, and what stays unseen |
+| **Focus** (0–100) | Attention concentrated on a few elements (high) or scattered (low) |
+| **Cognitive demand** (0–100) | How much there is to process; moderate wins |
+| **AOI attention & lift** | % of attention on brand, product, headline, body and CTA, and attention share ÷ area share |
+| **Memory** (0–100, optional) | Predicted share of viewers who would recognise it later |
+| **Impact score** (1–10) | One pre-flight number, against targets calibrated on your own best ads |
+
+Video works too: cuts, per-frame timelines, the first and last two seconds, and AOIs tracked through each shot.
+
+## Our model: MediaAttention-Ads v1
+
+Public attention models learned from photos of streets, animals and faces. Ads are type, logos and buttons. So we retrained a compact network on eye tracking of **posters, ads and interfaces** and tested it against six open models on images none of them had seen.
+
+<p align="center">
+  <img src="docs/img/readme/posters.png" alt="Bar chart: MediaAttention-Ads v1 reaches CC 0.752 on held-out posters, against 0.496 for TranSalNet, 0.458 for DeepGaze IIE, 0.454 for UNISAL and 0.416 for DeepGaze MSDB" width="100%">
+</p>
+
+- **+52% on posters** over the best other open model, with non-overlapping 95% confidence intervals. It is first on every UEyes category (posters, mobile, desktop, web).
+- **3.7M parameters, 0.04 s per image** on a laptop: 20–120× smaller than the alternatives.
+- **Apache-2.0** weights on [Hugging Face](https://huggingface.co/pranikz/MediaAttention-Ads). Full tables are under [Benchmark](#benchmark), and the training recipe under [Architecture](#architecture).
+
+## On real ads from the feed
+
+<p align="center">
+  <img src="docs/img/readme/real-ads.jpg" alt="Five Instagram ads (SHEIN, EAGLE, Bershka × Myntra, Desi Dress Code, boAt) above their predicted attention heatmaps, with impact scores from 5.5 to 8.1" width="100%">
+</p>
+
+One run on a laptop, no tuning. Faces win everywhere. SHEIN leads attention from the face into the sale badge and offer (8.1). boAt's seven-panel layout splits attention and the face beats the product (5.5).
+
+<sub><b>Disclaimer.</b> These are publicly available ads, shown for non-commercial research and testing only. All brands, trademarks, images and models belong to their respective owners; this project is not affiliated with or endorsed by any of them. Scores are automated model predictions, not a judgement of the ads or their performance. Rights holders can request removal by <a href="https://github.com/pranikz/MediaAttention/issues">opening an issue</a>.</sub>
+
+**Contents:** [Install](#install) · [Use](#use) · [Architecture](#architecture) · [Run your own study](#run-your-own-study) · [How each number is computed](#how-each-number-is-computed) · [Benchmark](#benchmark) · [Limitations](#honest-limitations) · [Roadmap](#roadmap) · [Licenses](#licenses) · [Citation](#citation)
 
 ## Install
 
@@ -254,7 +303,7 @@ GitHub Pages only serves the static study page; nothing flows back to it. If you
 
 | Metric | Method |
 |---|---|
-| Heatmap | UNISAL (Droste et al., ECCV 2020) with its SALICON weights, downloaded on first use from [pranikz/MediaAttention](https://huggingface.co/pranikz/MediaAttention). Optional: DeepGaze IIE with a Gaussian centre-bias prior. Fallback: spectral residual (Hou & Zhang 2007). |
+| Heatmap | MediaAttention-Ads v1 (UNISAL, Droste et al. ECCV 2020, fine-tuned on UEyes), downloaded on first use from [pranikz/MediaAttention-Ads](https://huggingface.co/pranikz/MediaAttention-Ads). Video uses stock UNISAL's recurrent mode. Optional: stock UNISAL, or DeepGaze IIE with a Gaussian centre-bias prior. Fallback: spectral residual (Hou & Zhang 2007). |
 | Focus | Share of the image needed to hold 80% of predicted attention, mapped to 0–100 (an attention-dispersion measure). |
 | Cognitive Demand | Mean Shannon entropy of 16×16 blocks of the grayscale image (32 levels), normalized to 0–100. |
 | Memory | ResMem (Needell & Bainbridge 2022), trained on LaMem/MemCat recognition data. It predicts the share of people who recognise an image when it repeats in a rapid stream, the same game Neurons' memory model is built on. Scores cluster high (a plain grey image gets ~81, ads ~90–98), so compare within a `bench` corpus rather than reading absolute values. Videos are scored per frame, without audio. |
@@ -357,3 +406,17 @@ The code is Apache-2.0. Model weights are downloaded at runtime and keep their o
 - **ResMem is non-commercial only** (University of Chicago license). Research use, including inside a company, is fine. Using it in a commercial product needs permission from the Brain Bridge Lab. It's an optional extra, so nothing else depends on it.
 
 Check the dataset terms before any commercial use.
+
+## Citation
+
+```bibtex
+@software{mahapatra2026mediaattention,
+  title  = {MediaAttention: open predicted attention for ads},
+  author = {Mahapatra, Pratyush},
+  year   = {2026},
+  doi    = {10.5281/zenodo.23540409},
+  url    = {https://github.com/pranikz/MediaAttention}
+}
+```
+
+Please also cite UNISAL (Droste, Jiao & Noble, ECCV 2020) and UEyes (Jiang et al., CHI 2023), which the model is built on.
