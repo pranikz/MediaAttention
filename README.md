@@ -359,10 +359,13 @@ Every image in UEyes, train and test. MediaAttention-Ads v1 is left out here bec
 |---|---|---|---|---|---|---|---|---|---|
 | TranSalNet-Dense | 0.534 | 1.01 | 0.655 | 0.586 | 0.700 | 0.523 | 0.586 | 0.543 | 0.483 |
 | UNISAL (stock) | 0.502 | 0.97 | 0.656 | 0.573 | 0.779 | 0.494 | 0.521 | 0.526 | 0.468 |
+| DeepGaze MSDB | 0.485 | 0.99 | 0.704 | 0.525 | 0.921 | 0.463 | 0.516 | 0.517 | 0.443 |
 | DeepGaze IIE | 0.485 | 0.95 | 0.684 | 0.548 | 0.777 | 0.483 | 0.478 | 0.513 | 0.465 |
 | Spectral residual | 0.232 | 0.45 | 0.623 | 0.463 | 1.006 | 0.257 | 0.198 | 0.290 | 0.185 |
 | Centre-bias baseline | 0.220 | 0.37 | 0.497 | 0.468 | 0.963 | 0.257 | 0.201 | 0.198 | 0.225 |
 <!-- /t -->
+
+On design content, size doesn't buy accuracy: the 452M-parameter DeepGaze MSDB ties the 104M DeepGaze IIE (CC 0.485) and trails TranSalNet and even 3.7M stock UNISAL. That gap is what fine-tuning on design eye tracking closes.
 
 ### Webpages (FiWI, out of domain for every model)
 
