@@ -116,7 +116,7 @@ def ueyes_section(ueyes, test, fiwi):
     if "unisal" in ueyes:
         u = ueyes["unisal"]["all"]["CC"][0]
         html += (f"<p>{NAMES[best]} is the most accurate on UEyes (CC {ueyes[best]['all']['CC'][0]:.3f}); UNISAL reaches {u:.3f}. "
-                 f"Interfaces and posters are harder than webpages for every model, which is where design-specific data matters.</p>")
+                 f"Interfaces and posters are harder than webpages for every model, which is where design-specific data matters. Model size does not close the gap: DeepGaze MSDB, at 452M parameters, ties DeepGaze IIE and trails 3.7M UNISAL in CC (MSDB was run on a Colab T4 GPU with the same code).</p>")
     if test and "unisal_ueyes" in test and "unisal" in test:
         keys = [k for k in ("unisal_ueyes", "unisal", "deepgaze_iie", "deepgaze_msdb", "transalnet") if k in test]
         gain = test["unisal_ueyes"]["all"]["CC"][0] - test["unisal"]["all"]["CC"][0]
@@ -359,12 +359,12 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <h3>5.2 Results</h3>
 {results}
 <p class="tcap"><b>Table 4.</b> FiWI, 149 images. Mean per-image scores; ↑ higher is better, ↓ lower is better.</p>
-<figure>{bars}<figcaption><b>Figure 1.</b> Correlation (CC) between each model's prediction and human fixations on FiWI. White ticks show 95% confidence intervals (±1.96 SE over images). The highlighted model is MediaAttention's default.</figcaption></figure>
+<figure>{bars}<figcaption><b>Figure 1.</b> Correlation (CC) between each model's prediction and human fixations on FiWI. White ticks show 95% confidence intervals (±1.96 SE over images). The highlighted model is stock UNISAL, the network MediaAttention-Ads v1 is built on (Section 5.5).</figcaption></figure>
 <figure>{scatter}<figcaption><b>Figure 2.</b> Accuracy against speed. DeepGaze MSDB is the most accurate. UNISAL is the fastest learned model and the most accurate one with a permissive licence.</figcaption></figure>
 
 <h3>5.3 Findings</h3>
 <div class="key"><p><b>Ranking.</b> DeepGaze MSDB leads on every metric (CC {msdb:.3f}), followed by DeepGaze IIE ({iie:.3f}), UNISAL ({u:.3f}) and TranSalNet ({tsn:.3f}). Every learned model beats the centre prior (CC {center:.3f}) by a wide margin. Spectral residual, a classic low-level model, falls below the centre prior.</p></div>
-<p><b>The licence–accuracy trade-off is small.</b> UNISAL trails DeepGaze IIE by {gap_lo:.3f} CC and MSDB by {gap_hi:.3f}. It runs at 0.04 s per image, about {speedup:.0f}× faster than IIE, and is the only model in the top three that can be redistributed and used commercially without asking. That is why MediaAttention uses it by default and offers DeepGaze as an option.</p>
+<p><b>The licence–accuracy trade-off is small.</b> UNISAL trails DeepGaze IIE by {gap_lo:.3f} CC and MSDB by {gap_hi:.3f}. It runs at 0.04 s per image, about {speedup:.0f}× faster than IIE, and is the only model in the top three that can be redistributed and used commercially without asking. That made it the base for MediaAttention's own model (Section 5.5); DeepGaze stays available as an option.</p>
 <p><b>Text is the hard case.</b> Every model scores lowest on text-heavy pages: UNISAL scores {text_u:.3f} on text pages against {pict_u:.3f} on pictorial ones, and MSDB {text_msdb:.3f} against {pict_msdb:.3f}. Natural-image training data teaches models to look at faces and objects, not at the reading patterns that dominate text layouts. Advertising copy is exactly this kind of content, which makes ad-specific training data the most valuable next step.</p>
 {categories}
 <p class="tcap"><b>Table 5.</b> CC by FiWI page type.</p>
