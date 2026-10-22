@@ -103,7 +103,7 @@ def ueyes_section(ueyes, test, fiwi):
         return "<p>Results on UEyes are added in the next revision of this report.</p>"
     present = [k for k in BASE if k in ueyes]
     best = max(present, key=lambda k: ueyes[k]["all"]["CC"][0])
-    html = (f"<h3>5.4 UEyes: posters, ads and user interfaces</h3>"
+    html = (f"<h3>6.4 UEyes: posters, ads and user interfaces</h3>"
             f"<p>UEyes [27] holds 1,980 screenshots in four categories (webpages, desktop UIs, mobile UIs and posters, "
             f"about 300 of which are real ads and posters), viewed freely for 7 s by 62 participants on a Gazepoint GP3. "
             f"None of the six models was trained on any of it, so we evaluate on all 1,980 images. Fixations are mapped "
@@ -121,7 +121,7 @@ def ueyes_section(ueyes, test, fiwi):
         keys = [k for k in ("unisal_ueyes", "unisal", "deepgaze_iie", "deepgaze_msdb", "transalnet") if k in test]
         gain = test["unisal_ueyes"]["all"]["CC"][0] - test["unisal"]["all"]["CC"][0]
         fiwi_gain = (fiwi["unisal_ueyes"]["all"]["CC"][0] - fiwi["unisal"]["all"]["CC"][0]) if "unisal_ueyes" in fiwi else None
-        html += ("<h3>5.5 An ad- and UI-tuned model</h3>"
+        html += ("<h3>6.5 An ad- and UI-tuned model</h3>"
                  "<p>We fine-tuned UNISAL on the UEyes training split (KL − CC loss, best epoch chosen on a held-out tenth "
                  "of the training images) and evaluated it on the UEyes test split, 108 images it never saw, and on FiWI, "
                  "which is out of domain for both.</p>"
@@ -147,7 +147,7 @@ def real_ads_section():
     row = lambda k, lab: (f"<tr><td>{lab}</td><td class=n>{b['median'].get(k, float('nan')):.1f}</td>"
                           f"<td class=n>{a['median'].get(k, float('nan')):.1f}</td></tr>")
     rng = r["recommended_ranges_after_fix"]
-    return ("<h3>5.6 Behaviour on 272 real ads</h3>"
+    return ("<h3>6.6 Behaviour on 272 real ads</h3>"
             "<p>To see how the pipeline behaves on real creatives, we scored 272 openly licensed print ads and advertising "
             "posters from Wikimedia Commons (CLIP-filtered from 300 to remove photographs of ads in the wild). There is no "
             "eye tracking here, so this measures behaviour, not accuracy. A visual audit found four layout rules that real "
@@ -164,7 +164,7 @@ def real_ads_section():
 
 
 def arch_section():
-    return ("<h3>5.7 Architectures compared</h3>"
+    return ("<h3>6.7 Architectures compared</h3>"
             "<p>Table 11 sets the models side by side, with Neurons' commercial model as described in its public tech paper [30] "
             "for reference. Accuracy columns are from Tables 3 and 8.</p>"
             + tables.to_html(tables.arch_table())
@@ -177,6 +177,143 @@ def arch_section():
               "<p><b>Where it does not.</b> DeepGaze MSDB, at 120× the size, remains ~0.05 CC ahead on FiWI and further ahead on "
               "photo-led pages. The video branch is not ad-tuned. UEyes is one lab panel of 62 participants viewing freely, "
               "unlike a one-second glance in a feed.</p></div>")
+
+
+def _box(x, y, w, h, title, sub="", accent=False):
+    stroke = ACCENT if accent else LINE
+    return (f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="3" fill="{"#eef3ff" if accent else "#fafafa"}" stroke="{stroke}" stroke-width="{1.6 if accent else 1}"/>'
+            f'<text x="{x + 10}" y="{y + 20}" font-size="12.5" font-weight="600" fill="{INK}">{title}</text>'
+            + (f'<text x="{x + 10}" y="{y + 37}" font-size="10.5" fill="{MUTED}">{sub}</text>' if sub else ""))
+
+
+def _arrow(x1, y1, x2, y2, dash=False):
+    return (f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{MUTED}" stroke-width="1.2" marker-end="url(#ah)"'
+            + (' stroke-dasharray="4 3"' if dash else "") + "/>")
+
+
+DEFS = f'<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="{MUTED}"/></marker></defs>'
+
+
+def pipeline_svg():
+    b = [_box(10, 95, 120, 50, "Ad", "image or video"),
+         _box(175, 20, 200, 50, "Attention model", "MediaAttention-Ads v1", True),
+         _box(175, 95, 200, 50, "OCR + layout rules", "headline · body · CTA"),
+         _box(175, 170, 200, 50, "OWLv2 detection", "logo · product"),
+         _box(175, 245, 200, 50, "ResMem (optional)", "memorability"),
+         _box(420, 20, 150, 50, "Heatmap + fog", "fixation density"),
+         _box(420, 132, 150, 50, "AOI boxes", "per element"),
+         _box(615, 76, 165, 64, "Metrics", "focus · demand · AOI %"),
+         _box(615, 200, 165, 50, "Impact score", "1–10 vs targets", True),
+         _box(420, 245, 150, 50, "bench", "your ads (+ KPIs)")]
+    a = [_arrow(130, 120, 173, 45), _arrow(130, 120, 173, 120), _arrow(130, 120, 173, 195), _arrow(130, 120, 173, 270),
+         _arrow(375, 45, 418, 45), _arrow(375, 120, 418, 150), _arrow(375, 195, 418, 165), _arrow(570, 45, 613, 95),
+         _arrow(570, 157, 613, 115), _arrow(375, 270, 613, 135), _arrow(697, 140, 697, 198), _arrow(570, 270, 613, 230)]
+    return f'<svg viewBox="0 0 790 305" width="100%" font-family="Archivo, sans-serif">{DEFS}{"".join(b + a)}</svg>'
+
+
+def model_svg():
+    L = 20
+    rows = [("Input", "RGB on a 32-px grid (e.g. 256×416), ImageNet-normalised", False),
+            ("MobileNetV2 encoder", "2.2M params · features at 1/8, 1/16 and 1/32 scale", False),
+            ("+ 16 learned Gaussian prior maps", "where people tend to look, before any content", False),
+            ("1×1 conv + batch norm → 256 channels", "post-encoder projection", False),
+            ("Decoder: 2 upsampling stages", "inverted-residual blocks + skips from 1/16 and 1/8", False),
+            ("Domain-specific head", "1×1 adaptation · resize to input · learned 41×41 smoothing", True),
+            ("log-softmax → fixation density", "a probability map that sums to 1 over the image", False)]
+    out, y = [], 10
+    for i, (t, sub, acc) in enumerate(rows):
+        out.append(_box(L, y, 380, 46, t, sub, acc))
+        if i:
+            out.append(_arrow(L + 190, y - 14, L + 190, y - 2))
+        y += 60
+    out.append(_box(450, 190, 300, 46, "Bypass-RNN: ConvGRU, 0.43M params", "video only: state carries across frames"))
+    out.append(_arrow(400, 203, 448, 203, True))
+    out.append(_arrow(600, 236, 402, 262, True))
+    out.append(f'<text x="450" y="300" font-size="10.5" fill="{MUTED}">Images skip the RNN. Batch norm, priors, adaptation and</text>'
+               f'<text x="450" y="315" font-size="10.5" fill="{MUTED}">smoothing have one copy per data domain (image / video).</text>'
+               f'<text x="450" y="345" font-size="10.5" fill="{ACCENT}">Fine-tuning on UEyes updates every weight</text>'
+               f'<text x="450" y="360" font-size="10.5" fill="{ACCENT}">and uses the image-domain head (blue).</text>')
+    return f'<svg viewBox="0 0 770 {y}" width="100%" font-family="Archivo, sans-serif">{DEFS}{"".join(out)}</svg>'
+
+
+CURVE = [(0, 0.502, 0.764), (1, 0.752, 0.343), (2, 0.762, 0.333), (3, 0.762, 0.333), (4, 0.764, 0.328),
+         (5, 0.769, 0.324), (6, 0.762, 0.334), (7, 0.767, 0.324), (8, 0.766, 0.331)]  # benchmarks/finetune_unisal.py log
+
+
+def curve_svg():
+    W, H, l, r, t, b = 760, 220, 60, 20, 20, 40
+    x = lambda e: l + (W - l - r) * e / 8
+    y = lambda v: t + (H - t - b) * (1 - (v - 0.45) / (0.8 - 0.45))
+    g = [f'<line x1="{l}" y1="{y(v)}" x2="{W - r}" y2="{y(v)}" stroke="{LINE}"/><text x="{l - 8}" y="{y(v) + 4}" font-size="10" fill="{MUTED}" text-anchor="end">{v:.2f}</text>' for v in (0.5, 0.6, 0.7, 0.8)]
+    g += [f'<text x="{x(e)}" y="{H - b + 18}" font-size="10" fill="{MUTED}" text-anchor="middle">{e}</text>' for e, _, _ in CURVE]
+    pts = " ".join(f"{x(e)},{y(c)}" for e, c, _ in CURVE)
+    g.append(f'<polyline points="{pts}" fill="none" stroke="{ACCENT}" stroke-width="2"/>')
+    g += [f'<circle cx="{x(e)}" cy="{y(c)}" r="{4.5 if e == 5 else 3}" fill="{ACCENT}"/>' for e, c, _ in CURVE]
+    g.append(f'<text x="{x(5)}" y="{y(0.769) - 10}" font-size="10.5" fill="{INK}" text-anchor="middle">best: epoch 5, CC 0.769</text>')
+    g.append(f'<text x="{x(0) + 8}" y="{y(0.502) + 4}" font-size="10.5" fill="{MUTED}">stock SALICON weights, CC 0.502</text>')
+    g.append(f'<text x="{(W + l) / 2}" y="{H - 4}" font-size="10.5" fill="{MUTED}" text-anchor="middle">epoch</text>')
+    return f'<svg viewBox="0 0 {W} {H}" width="100%" font-family="Archivo, sans-serif">{"".join(g)}</svg>'
+
+
+def built_section():
+    return ("<h2>5. How MediaAttention is built</h2>"
+            "<p>MediaAttention turns one prediction, where people will look, into the scores a marketer acts on. Figure 1 shows "
+            "the pipeline: the attention model predicts a fixation-density map, layout detection finds the elements that matter, "
+            "and the two are combined into metrics and an Impact Score calibrated on the user's own ads.</p>"
+            f"<figure>{pipeline_svg()}<figcaption><b>Figure 1.</b> The MediaAttention pipeline for one image. Video runs the same "
+            "steps per frame, adds cut detection and tracks AOIs through each shot.</figcaption></figure>"
+            "<h3>5.1 The attention network</h3>"
+            "<p>The model is UNISAL [25], a 3.7M-parameter network built for both images and video (Figure 2). A MobileNetV2 "
+            "encoder extracts features at three scales. Sixteen learned Gaussian maps are concatenated to the deepest features, "
+            "so the network can learn general viewing biases, such as the pull of the centre, separately from content. A decoder "
+            "with skip connections upsamples back to the image. A domain-specific head adapts, resizes and smooths the result, "
+            "and a log-softmax turns it into a probability map. For video, a convolutional GRU sits on a bypass between encoder "
+            "and decoder and carries attention from frame to frame; images skip it. We chose UNISAL as the base because it was "
+            "the most accurate model with a permissive licence on FiWI (Section 6) and is 17–70× faster than DeepGaze, small "
+            "enough to retrain on a laptop.</p>"
+            f"<figure>{model_svg()}<figcaption><b>Figure 2.</b> The attention network (UNISAL architecture), as used for images "
+            "and video.</figcaption></figure>"
+            "<h3>5.2 Training MediaAttention-Ads v1</h3>"
+            "<ul>"
+            "<li><b>Data.</b> The UEyes [27] training split: 1,872 posters, mobile UIs, desktop UIs and webpages with eye "
+            "tracking from 62 participants (7 s free viewing). A random 10% (187 images) is held out to choose the epoch. "
+            "The UEyes test split (108 images) and FiWI are never used, so they stay fair for evaluation.</li>"
+            "<li><b>Targets.</b> Each image's fixations, inside the image, are placed on a map and blurred with a Gaussian of "
+            "≈1° of visual angle (the dataset's 40 screen pixels per degree, converted to image pixels). The map is resized "
+            "to a quarter of the network's input resolution and normalised to sum to 1.</li>"
+            "<li><b>Loss.</b> For prediction <i>P</i> and target <i>Q</i>: <i>L</i> = KL(<i>Q</i> ‖ <i>P</i>) − CC(<i>P</i>, <i>Q</i>). "
+            "KL divergence penalises attention the model misses; correlation rewards the overall shape. This pair is standard "
+            "for saliency training.</li>"
+            "<li><b>Optimisation.</b> Start from UNISAL's SALICON weights; AdamW, learning rate 3×10⁻⁵, weight decay 10⁻⁴, "
+            "batch size 1 with batch-norm statistics frozen (single-image batches would corrupt them), 8 epochs, about "
+            "25 minutes on an Apple M3 Pro. The weights from the epoch with the best held-out CC are kept.</li>"
+            "<li><b>Video.</b> Only the image branch is tuned. Video keeps UNISAL's DHF1K weights, because no open ad-video "
+            "eye-tracking set exists yet.</li></ul>"
+            f"<figure>{curve_svg()}<figcaption><b>Figure 3.</b> Held-out CC during fine-tuning. Nearly all of the gain arrives "
+            "in the first epoch; the curve then plateaus, which suggests more data rather than more training is the next lever. "
+            "Reproduce with <code>benchmarks/finetune_unisal.py</code>.</figcaption></figure>"
+            "<h3>5.3 From heatmap to scores</h3>"
+            "<ul>"
+            "<li><b>Focus</b> (0–100): sort the normalised heatmap, find the share <i>k</i> of pixels holding 80% of attention, "
+            "and report 100·max(0, 1 − <i>k</i>/0.8). Attention on a few elements scores high; attention spread evenly scores 0.</li>"
+            "<li><b>Cognitive demand</b> (0–100): the grayscale image is quantised to 32 levels and split into 16×16 blocks; "
+            "the mean Shannon entropy of the blocks is divided by its maximum, log₂32.</li>"
+            "<li><b>Areas of interest.</b> OCR (PP-OCR via RapidOCR) reads every text line. Lines within 75% of the largest "
+            "text height form the headline; a short line (≤ 4 words) on a uniform colour patch covering at most 10% of the ad "
+            "is the call to action, and its box grows to the button's edges; the rest is body copy. OWLv2 finds the logo and "
+            "the product (named with <code>--product</code>); if the logo detection is weak, a short text line repeated or "
+            "placed in the top or bottom band is used.</li>"
+            "<li><b>AOI attention and lift.</b> Attention is the heatmap mass inside a box; lift is attention share divided "
+            "by area share, so lift above 1 means an element draws more than its size.</li>"
+            "<li><b>Memory</b> (optional): ResMem [10] predicts recognition after a brief exposure; per frame for video.</li>"
+            "<li><b>Impact Score</b> (1–10): each metric scores 10 inside its target range and falls linearly from 7 at the "
+            "range edge to 1 at the end of the scale; the Impact Score is the mean. <code>bench</code> sets the targets from a "
+            "folder of the user's ads: the top 20% for higher-is-better metrics and the middle 50% for cognitive demand, or, "
+            "with campaign KPIs, the middle 50% of what the best-performing fifth scored.</li>"
+            "<li><b>Video.</b> Frames are decoded with PyAV. A hard cut is a change of more than 40% in the grayscale histogram, "
+            "at least 0.5 s after the last cut. AOIs found at the start of each shot are tracked with pyramidal Lucas–Kanade "
+            "optical flow [21–23], each box with its own shift and zoom. Attention comes from the recurrent model fed at about "
+            "6 frames per second.</li></ul>")
 
 
 # ------------------------------------------------------------------ document
@@ -192,7 +329,7 @@ def build():
 
     html = TEMPLATE.format(
         css=CSS, bars=bars(fiwi), scatter=scatter(fiwi), results=results_table(fiwi), categories=category_table(fiwi),
-        ueyes=ueyes_section(ueyes, ueyes_test, fiwi) + real_ads_section() + arch_section(), u=u, iie=iie, msdb=msdb, tsn=tsn, speedup=speedup,
+        built=built_section(), ueyes=ueyes_section(ueyes, ueyes_test, fiwi) + real_ads_section() + arch_section(), u=u, iie=iie, msdb=msdb, tsn=tsn, speedup=speedup,
         gap_lo=iie - u, gap_hi=msdb - u, text_u=text_cc["unisal"], text_msdb=text_cc["deepgaze_msdb"],
         pict_u=pict_cc["unisal"], pict_msdb=pict_cc["deepgaze_msdb"], center=fiwi["center"]["all"]["CC"][0],
         version="v0.2 · MediaAttention-Ads v1")
@@ -269,8 +406,9 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <ol>
 <li><b>A market review</b> of 15 commercial predictive-attention tools and five measured-attention vendors, decoding what their accuracy claims mean (Section 3).</li>
 <li><b>An open-model review</b> covering accuracy, training data (for contamination) and licences (Section 4).</li>
-<li><b>An open benchmark</b> of six models against human eye tracking on data none of them was trained on (Section 5).</li>
-<li><b>MediaAttention-Ads v1</b>, an attention model fine-tuned on design eye tracking that leads every open model on posters, ads and interfaces (Section 5.5), and <b>MediaAttention</b>, an open-source toolkit that turns its attention maps into ad metrics.</li>
+<li><b>An open benchmark</b> of six models against human eye tracking on data none of them was trained on (Section 6).</li>
+<li><b>How it is built</b>: the toolkit's pipeline, the attention network and how it was trained, and how each score is computed (Section 5).</li>
+<li><b>MediaAttention-Ads v1</b>, an attention model fine-tuned on design eye tracking that leads every open model on posters, ads and interfaces (Section 6.5), and <b>MediaAttention</b>, an open-source toolkit that turns its attention maps into ad metrics.</li>
 </ol>
 
 <h2>2. Background</h2>
@@ -327,7 +465,7 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <p class="tcap"><b>Table 2.</b> MIT/Tübingen MIT300 leaderboard [29], accessed 21 Oct 2026. These are natural images with free viewing. Four commercial tools have third-party-computed entries, and all of them score below the best open models. The leaderboard computes a metric-specific map from probabilistic models, which favours entries that submit densities (DeepGaze, UNISAL).</p>
 
 <h3>3.2 In-domain claims are not benchmark results</h3>
-<p>The most detailed public technical document we found, Neurons' tech paper, reports CC 0.944 against held-out data from its own ad corpus and compares this with the best research model's MIT300 CC (0.883) [30]. The two numbers come from different test sets, ceilings and viewing durations (5 s vs ~3 s), so they cannot be compared directly. A fair comparison needs every model on the same held-out data, which is what Section 5 does for the open models. Secondary metrics (clarity, cognitive load, memory, emotion) are defined differently by each vendor, and we found no external validation of any of them.</p>
+<p>The most detailed public technical document we found, Neurons' tech paper, reports CC 0.944 against held-out data from its own ad corpus and compares this with the best research model's MIT300 CC (0.883) [30]. The two numbers come from different test sets, ceilings and viewing durations (5 s vs ~3 s), so they cannot be compared directly. A fair comparison needs every model on the same held-out data, which is what Section 6 does for the open models. Secondary metrics (clarity, cognitive load, memory, emotion) are defined differently by each vendor, and we found no external validation of any of them.</p>
 
 <h2>4. Open models</h2>
 <table><thead><tr><th>Model</th><th>Year</th><th>Trained on</th><th>MIT300 CC</th><th>Code / weights licence</th><th>Laptop-friendly</th></tr></thead><tbody>
@@ -341,8 +479,9 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </tbody></table>
 <p class="tcap"><b>Table 3.</b> Open image models. Licences matter: the most accurate family (DeepGaze) ships without a licence file, which by default means all rights reserved. Video models (ViNet, TMFI-Net, SalFoM) score well on DHF1K. On real TV ads, a recent study found per-frame DeepGaze IIE reached CC 0.231 against 0.560 for the video model ViNet-S [34], so image models applied frame by frame understate attention dynamics in video.</p>
 
-<h2>5. Benchmark</h2>
-<h3>5.1 Setup</h3>
+{built}
+<h2>6. Benchmark</h2>
+<h3>6.1 Setup</h3>
 <ul>
 <li><b>Data.</b> FiWI [26]: 149 webpages at 1360×768, 11 viewers, 5 s free viewing, EyeLink 1000. Ground truth is all viewers' fixations, blurred with the dataset's own Gaussian (σ = 32 px) for CC, SIM and KLD. None of the six models was trained on FiWI.</li>
 <li><b>Models.</b> We ran each model as released, without fine-tuning:
@@ -356,23 +495,23 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <li><b>Hardware.</b> Apple M3 Pro, PyTorch MPS. Timing is per-image inference after the model has loaded.</li>
 </ul>
 
-<h3>5.2 Results</h3>
+<h3>6.2 Results</h3>
 {results}
 <p class="tcap"><b>Table 4.</b> FiWI, 149 images. Mean per-image scores; ↑ higher is better, ↓ lower is better.</p>
-<figure>{bars}<figcaption><b>Figure 1.</b> Correlation (CC) between each model's prediction and human fixations on FiWI. White ticks show 95% confidence intervals (±1.96 SE over images). The highlighted model is stock UNISAL, the network MediaAttention-Ads v1 is built on (Section 5.5).</figcaption></figure>
-<figure>{scatter}<figcaption><b>Figure 2.</b> Accuracy against speed. DeepGaze MSDB is the most accurate. UNISAL is the fastest learned model and the most accurate one with a permissive licence.</figcaption></figure>
+<figure>{bars}<figcaption><b>Figure 4.</b> Correlation (CC) between each model's prediction and human fixations on FiWI. White ticks show 95% confidence intervals (±1.96 SE over images). The highlighted model is stock UNISAL, the network MediaAttention-Ads v1 is built on (Section 6.5).</figcaption></figure>
+<figure>{scatter}<figcaption><b>Figure 5.</b> Accuracy against speed. DeepGaze MSDB is the most accurate. UNISAL is the fastest learned model and the most accurate one with a permissive licence.</figcaption></figure>
 
-<h3>5.3 Findings</h3>
+<h3>6.3 Findings</h3>
 <div class="key"><p><b>Ranking.</b> DeepGaze MSDB leads on every metric (CC {msdb:.3f}), followed by DeepGaze IIE ({iie:.3f}), UNISAL ({u:.3f}) and TranSalNet ({tsn:.3f}). Every learned model beats the centre prior (CC {center:.3f}) by a wide margin. Spectral residual, a classic low-level model, falls below the centre prior.</p></div>
-<p><b>The licence–accuracy trade-off is small.</b> UNISAL trails DeepGaze IIE by {gap_lo:.3f} CC and MSDB by {gap_hi:.3f}. It runs at 0.04 s per image, about {speedup:.0f}× faster than IIE, and is the only model in the top three that can be redistributed and used commercially without asking. That made it the base for MediaAttention's own model (Section 5.5); DeepGaze stays available as an option.</p>
+<p><b>The licence–accuracy trade-off is small.</b> UNISAL trails DeepGaze IIE by {gap_lo:.3f} CC and MSDB by {gap_hi:.3f}. It runs at 0.04 s per image, about {speedup:.0f}× faster than IIE, and is the only model in the top three that can be redistributed and used commercially without asking. That made it the base for MediaAttention's own model (Section 6.5); DeepGaze stays available as an option.</p>
 <p><b>Text is the hard case.</b> Every model scores lowest on text-heavy pages: UNISAL scores {text_u:.3f} on text pages against {pict_u:.3f} on pictorial ones, and MSDB {text_msdb:.3f} against {pict_msdb:.3f}. Natural-image training data teaches models to look at faces and objects, not at the reading patterns that dominate text layouts. Advertising copy is exactly this kind of content, which makes ad-specific training data the most valuable next step.</p>
 {categories}
 <p class="tcap"><b>Table 5.</b> CC by FiWI page type.</p>
-<figure><img src="fig/models_on_ad.jpg" alt="Six models' predicted attention on the same synthetic ad"><figcaption><b>Figure 3.</b> Each model's prediction on the same synthetic ad (MediaAttention's example). The learned models agree on the headline and call to action, and differ in how much attention they give the logo. Spectral residual fixates on high-contrast shapes.</figcaption></figure>
+<figure><img src="fig/models_on_ad.jpg" alt="Six models' predicted attention on the same synthetic ad"><figcaption><b>Figure 6.</b> Each model's prediction on the same synthetic ad (MediaAttention's example). The learned models agree on the headline and call to action, and differ in how much attention they give the logo. Spectral residual fixates on high-contrast shapes.</figcaption></figure>
 {ueyes}
 
-<h2>6. Discussion</h2>
-<h3>6.1 Questions to ask a vendor</h3>
+<h2>7. Discussion</h2>
+<h3>7.1 Questions to ask a vendor</h3>
 <ol>
 <li>Which metric? Ask for CC and NSS, not only AUC.</li>
 <li>Which test set, was it held out, and was it scored by a third party?</li>
@@ -380,10 +519,10 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <li>How were secondary scores (clarity, memory, emotion) validated against real outcomes?</li>
 </ol>
 <p>A tool that publishes MIT/Tübingen entries, or runs on an open benchmark such as this one, can be compared. A bare percentage cannot.</p>
-<h3>6.2 What predicted attention can and cannot tell you</h3>
+<h3>7.2 What predicted attention can and cannot tell you</h3>
 <p>Models trained on free viewing predict bottom-up, first-seconds attention: what pops out. They do not model goal-directed search (a shopper looking for a price), audio in video, or the placement context of an ad. Small independent comparisons of commercial tools with eye tracking point the same way: predicted maps track salience but miss goal-driven attention. Predicted attention is a fast first filter for comparing creative variants, not a replacement for testing with people when stakes are high.</p>
 
-<h3>6.3 An open panel</h3>
+<h3>7.3 An open panel</h3>
 <p>Commercial tools rest on private panels, and their secondary metrics (engagement, trust, memory) cannot be checked from outside. MediaAttention ships the panel instead: a static browser study with no server and no uploads.</p>
 <ul>
 <li><b>Gaze:</b> estimated from MediaPipe face landmarks with a per-participant ridge calibration, a click-to-fixate 9-point grid followed by a 5-point accuracy check.</li>
@@ -393,7 +532,7 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </ul>
 <p>Webcam gaze is coarse (2–4° versus about 0.5° for lab trackers), but aggregated over participants it is enough to validate heatmaps on one's own creatives. It is also a route to openly licensed training data for ad-specific attention and emotion models.</p>
 
-<h2>7. Limitations and roadmap</h2>
+<h2>8. Limitations and roadmap</h2>
 <ul>
 <li><b>Data.</b> FiWI is small (149 webpages, 11 viewers). UEyes is larger but is one lab panel (62 participants, free viewing, 7 s). Neither measures a one-second glance in a scrolling feed.</li>
 <li><b>Scope.</b> We evaluated only openly available models; commercial tools could not be run on the same data.</li>
@@ -401,7 +540,7 @@ TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 </ul>
 <p><b>Roadmap.</b> Next: tune the recurrent video branch on ad video eye tracking; score creatives in feed context with 1–2 s exposures; retrain the memory model on openly licensed data; and train a v2 that distils DeepGaze MSDB on photographs while keeping the design data, to close the remaining gap on photo-led creatives. Later: emotion, engagement and trust models trained on panel data from the open study kit; audio for video ads; and an open, growing ad eye-tracking dataset built from contributed studies.</p>
 
-<h2>8. Conclusion</h2>
+<h2>9. Conclusion</h2>
 <p>Commercial attention-prediction claims are rarely comparable, and where third-party scores exist, the best open models match or beat them. A small, permissively licensed network fine-tuned on design eye tracking, MediaAttention-Ads v1, is the most accurate open model on posters, ads and interfaces by a wide margin, and stays within a few hundredths of CC of the state of the art on unseen webpages while running in tens of milliseconds. The benchmark, the toolkit and this report are open, so these claims can be checked and extended.</p>
 
 <h2>Appendix A · Reproducibility</h2>
