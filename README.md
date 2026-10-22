@@ -227,6 +227,7 @@ Video still uses the stock UNISAL video weights: there is no open ad-video eye-t
 
 ### How it compares with other attention models
 
+<!-- t:arch -->
 | Model | Architecture | Params | Trained on | Video | Licence | s / image (M3 Pro) | UEyes test CC | FiWI CC |
 |---|---|---|---|---|---|---|---|---|
 | **MediaAttention-Ads v1** (ours) | UNISAL: MobileNetV2 encoder, Gaussian priors, ConvGRU (video), decoder with skips | 3.7M | SALICON → fine-tuned on UEyes (posters, ads, UIs) | yes (recurrent) | Apache-2.0 | 0.04 | 0.735 | 0.631 |
@@ -235,6 +236,7 @@ Video still uses the stock UNISAL video weights: there is no open ad-video eye-t
 | DeepGaze IIE | ensemble of 4 backbones (DenseNet-201, ResNeXt-50, EfficientNet-B5, ShapeNet-ResNet-50) + readout | 104.0M | SALICON → MIT1003 | no | no licence file | 0.67 | 0.454 | 0.649 |
 | DeepGaze MSDB | CLIP RN50x64 + DINOv2 ViT-B/14 at several scales + readout, dataset-bias parameters | 451.6M | MIT1003, CAT2000, COCO-Freeview, DAEMONS, FIGRIM | no | no licence file | 2.90 | 0.452 | 0.676 |
 | Neurons (commercial, for reference) | CNN encoder–decoder (ConvNeXt / ResNet-50 components), per its public tech paper | not disclosed | proprietary eye tracking (~20k participants) | separate video model | closed | – | not runnable | not runnable |
+<!-- /t -->
 
 Where we win:
 - **Accuracy on ads and posters.** It is first on every UEyes category (posters, mobile, desktop, web) by a wide margin, because it is the only open model trained on designed visual content.
@@ -320,6 +322,7 @@ How close are the predictions to where real people look? All metrics were comput
 
 UEyes (Jiang et al., CHI 2023) has eye tracking from 62 participants, 7 s free viewing, on a Gazepoint GP3. Its test split (108 images, 27 per category) was never used for training or model selection.
 
+<!-- t:posters -->
 | Model | CC ↑ | 95% CI | NSS ↑ | KLD ↓ |
 |---|---|---|---|---|
 | **MediaAttention-Ads v1** (ours) | 0.752 | [0.695, 0.809] | 1.55 | 0.354 |
@@ -329,11 +332,13 @@ UEyes (Jiang et al., CHI 2023) has eye tracking from 62 participants, 7 s free v
 | DeepGaze MSDB | 0.416 | [0.351, 0.481] | 0.86 | 1.079 |
 | Spectral residual | 0.285 | [0.209, 0.361] | 0.58 | 1.082 |
 | Centre-bias baseline | 0.281 | [0.218, 0.344] | 0.55 | 0.949 |
+<!-- /t -->
 
 (n = 27 test posters; 95% CI over images.) MediaAttention-Ads v1's interval does not overlap any other model's.
 
 ### All UEyes test categories
 
+<!-- t:ueyes_test -->
 | Model | CC ↑ | NSS ↑ | sAUC ↑ | SIM ↑ | KLD ↓ | poster CC | mobile CC | desktop CC | web CC |
 |---|---|---|---|---|---|---|---|---|---|
 | **MediaAttention-Ads v1** (ours) | 0.735 | 1.53 | 0.731 | 0.680 | 0.399 | 0.752 | 0.820 | 0.692 | 0.674 |
@@ -343,11 +348,27 @@ UEyes (Jiang et al., CHI 2023) has eye tracking from 62 participants, 7 s free v
 | DeepGaze MSDB | 0.452 | 0.94 | 0.690 | 0.499 | 1.039 | 0.415 | 0.530 | 0.465 | 0.397 |
 | Centre-bias baseline | 0.219 | 0.40 | 0.499 | 0.447 | 1.021 | 0.281 | 0.189 | 0.190 | 0.215 |
 | Spectral residual | 0.214 | 0.44 | 0.616 | 0.433 | 1.125 | 0.285 | 0.131 | 0.270 | 0.169 |
+<!-- /t -->
+
+### All 1,980 UEyes images (models as released)
+
+Every image in UEyes, train and test. MediaAttention-Ads v1 is left out here because it was trained on the train split; its fair numbers are in the two tables above.
+
+<!-- t:ueyes_full -->
+| Model | CC ↑ | NSS ↑ | sAUC ↑ | SIM ↑ | KLD ↓ | poster CC | mobile CC | desktop CC | web CC |
+|---|---|---|---|---|---|---|---|---|---|
+| TranSalNet-Dense | 0.534 | 1.01 | 0.655 | 0.586 | 0.700 | 0.523 | 0.586 | 0.543 | 0.483 |
+| UNISAL (stock) | 0.502 | 0.97 | 0.656 | 0.573 | 0.779 | 0.494 | 0.521 | 0.526 | 0.468 |
+| DeepGaze IIE | 0.485 | 0.95 | 0.684 | 0.548 | 0.777 | 0.483 | 0.478 | 0.513 | 0.465 |
+| Spectral residual | 0.232 | 0.45 | 0.623 | 0.463 | 1.006 | 0.257 | 0.198 | 0.290 | 0.185 |
+| Centre-bias baseline | 0.220 | 0.37 | 0.497 | 0.468 | 0.963 | 0.257 | 0.201 | 0.198 | 0.225 |
+<!-- /t -->
 
 ### Webpages (FiWI, out of domain for every model)
 
 FiWI (Shen & Zhao, ECCV 2014) has 149 webpages, 11 viewers and 5 s free viewing. None of the models, ours included, was trained on it.
 
+<!-- t:fiwi -->
 | Model | CC ↑ | NSS ↑ | sAUC ↑ | SIM ↑ | KLD ↓ | pictorial CC | mixed CC | text CC |
 |---|---|---|---|---|---|---|---|---|
 | DeepGaze MSDB | 0.676 | 1.54 | 0.748 | 0.642 | 0.462 | 0.751 | 0.686 | 0.592 |
@@ -357,6 +378,7 @@ FiWI (Shen & Zhao, ECCV 2014) has 149 webpages, 11 viewers and 5 s free viewing.
 | TranSalNet-Dense | 0.608 | 1.25 | 0.646 | 0.605 | 0.603 | 0.650 | 0.642 | 0.532 |
 | Centre-bias baseline | 0.345 | 0.62 | 0.500 | 0.476 | 0.899 | 0.305 | 0.373 | 0.358 |
 | Spectral residual | 0.209 | 0.40 | 0.562 | 0.449 | 1.052 | 0.220 | 0.249 | 0.159 |
+<!-- /t -->
 
 What this means:
 
@@ -364,7 +386,7 @@ What this means:
 - **DeepGaze MSDB stays the most accurate on photo-led pages**, at 120× the size and 70× the time.
 - **Real ads in the wild:** the detection pipeline was checked on 272 openly licensed print ads and posters from Wikimedia Commons ([sources](benchmarks/results/wikimedia_real_ads_sources.csv)). There is no eye tracking for those, so the check covers AOI detection and score ranges, not attention accuracy.
 
-The full write-up is in the [research report (PDF)](docs/research/MediaAttention-report.pdf). It includes architecture details, a review of 15 commercial tools and what their accuracy claims actually measure. A benchmark on all 1,980 UEyes images (stock models only, since ours saw the training split) is in [`benchmarks/results/ueyes.json`](benchmarks/results/ueyes.json).
+The full write-up is in the [research report (PDF)](docs/research/MediaAttention-report.pdf). It includes architecture details, a review of 15 commercial tools and what their accuracy claims actually measure.
 
 ## Honest limitations
 

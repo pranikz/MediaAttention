@@ -7,6 +7,7 @@ import json
 import math
 import re
 import statistics as st
+import sys
 from pathlib import Path
 
 R = Path(__file__).parent / "results"
@@ -84,7 +85,7 @@ def arch_table():
     return "\n".join(out)
 
 
-def to_html(md):
+def to_html(md, cls=""):
     """A markdown table from this module -> an HTML table; our row is marked class="ours"."""
     lines = [l for l in md.strip().splitlines() if not l.startswith("|---")]
     cells = lambda l: [c.strip() for c in l.strip("|").split("|")]
@@ -96,10 +97,37 @@ def to_html(md):
         cs[0] = re.sub(r"\*\*(.+?)\*\*", r"\1", cs[0])
         tds = "".join(f'<td{" class=n" if re.match(r"^[0-9.[–-]", c) else ""}>{c}</td>' for c in cs)
         rows += f'<tr{" class=ours" if ours else ""}>{tds}</tr>'
-    return f"<table><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>"
+    return f"<table{f' class=\"{cls}\"' if cls else ''}><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>"
+
+
+CATS = ["poster", "mobile", "desktop", "web"]
+BLOCKS = {
+    "posters": lambda: posters_table()[0],
+    "ueyes_test": lambda: dataset_table("ueyes_test", CATS),
+    "ueyes_full": lambda: dataset_table("ueyes", CATS),
+    "fiwi": lambda: dataset_table("fiwi", ["pictorial", "mixed", "text"]),
+    "arch": lambda: arch_table(),
+}
+
+
+def fill(path):
+    """Regenerate every <!-- t:NAME -->...<!-- /t --> block in a Markdown or HTML file from the result files."""
+    path = Path(path)
+    html = path.suffix == ".html"
+    def block(m):
+        md = BLOCKS[m.group(1)]()
+        body = to_html(md, "bench wide" if m.group(1) != "posters" else "bench") if html else f"\n{md}\n"
+        return f"<!-- t:{m.group(1)} -->{body}<!-- /t -->"
+    text, n = re.subn(r"<!-- t:(\w+) -->.*?<!-- /t -->", block, path.read_text(), flags=re.S)
+    path.write_text(text)
+    print(f"{path}: {n} tables")
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:  # python benchmarks/tables.py README.md docs/index.html ...
+        for f in sys.argv[1:]:
+            fill(f)
+        sys.exit()
     t, n = posters_table()
     print(t, f"\n(n = {n} test posters)\n")
     print(dataset_table("ueyes_test", ["poster", "mobile", "desktop", "web"]), "\n")
