@@ -1,0 +1,240 @@
+\begin{thebibliography}{35}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Pieters and Wedel(2004)]{pieters2004attention}
+Rik Pieters and Michel Wedel.
+\newblock Attention capture and transfer in advertising: Brand, pictorial, and
+  text-size effects.
+\newblock \emph{Journal of Marketing}, 68\penalty0 (2), 2004.
+\newblock \doi{10.1509/jmkg.68.2.36.27794}.
+
+\bibitem[Pieters et~al.(2010)Pieters, Wedel, and Batra]{pieters2010stopping}
+Rik Pieters, Michel Wedel, and Rajeev Batra.
+\newblock The stopping power of advertising: Measures and effects of visual
+  complexity.
+\newblock \emph{Journal of Marketing}, 74\penalty0 (5), 2010.
+\newblock \doi{10.1509/jmkg.74.5.048}.
+
+\bibitem[Milosavljevic et~al.(2012)Milosavljevic, Navalpakkam, Koch, and
+  Rangel]{milosavljevic2012saliency}
+Milica Milosavljevic, Vidhya Navalpakkam, Christof Koch, and Antonio Rangel.
+\newblock Relative visual saliency differences induce sizable bias in consumer
+  choice.
+\newblock \emph{Journal of Consumer Psychology}, 22\penalty0 (1), 2012.
+\newblock \doi{10.1016/j.jcps.2011.10.002}.
+
+\bibitem[Jiang et~al.(2015)Jiang, Huang, Duan, and Zhao]{jiang2015salicon}
+Ming Jiang, Shengsheng Huang, Juanyong Duan, and Qi~Zhao.
+\newblock {SALICON}: Saliency in context.
+\newblock In \emph{CVPR}, 2015.
+\newblock \doi{10.1109/CVPR.2015.7298710}.
+
+\bibitem[Judd et~al.(2009)Judd, Ehinger, Durand, and
+  Torralba]{judd2009learning}
+Tilke Judd, Krista Ehinger, Fr{\'e}do Durand, and Antonio Torralba.
+\newblock Learning to predict where humans look.
+\newblock In \emph{ICCV}, 2009.
+\newblock \doi{10.1109/ICCV.2009.5459462}.
+
+\bibitem[Itti et~al.(1998)Itti, Koch, and Niebur]{itti1998model}
+Laurent Itti, Christof Koch, and Ernst Niebur.
+\newblock A model of saliency-based visual attention for rapid scene analysis.
+\newblock \emph{IEEE TPAMI}, 20\penalty0 (11), 1998.
+\newblock \doi{10.1109/34.730558}.
+
+\bibitem[Linardos et~al.(2021)Linardos, K{\"u}mmerer, Press, and
+  Bethge]{linardos2021deepgaze}
+Akis Linardos, Matthias K{\"u}mmerer, Ori Press, and Matthias Bethge.
+\newblock {DeepGaze IIE}: Calibrated prediction in and out-of-domain for
+  state-of-the-art saliency modeling.
+\newblock In \emph{ICCV}, 2021.
+\newblock arXiv:2105.12441.
+
+\bibitem[K{\"u}mmerer et~al.(2025)K{\"u}mmerer, Khanuja, and
+  Bethge]{kummerer2025msdb}
+Matthias K{\"u}mmerer, Harneet~S. Khanuja, and Matthias Bethge.
+\newblock Modeling saliency dataset bias, 2025.
+\newblock arXiv:2505.10169.
+
+\bibitem[Lou et~al.(2022)Lou, Lin, Marshall, Saupe, and Liu]{lou2022transalnet}
+Jianxun Lou, Hanhe Lin, David Marshall, Dietmar Saupe, and Hantao Liu.
+\newblock {TranSalNet}: Towards perceptually relevant visual saliency
+  prediction.
+\newblock \emph{Neurocomputing}, 494, 2022.
+\newblock arXiv:2110.03593.
+
+\bibitem[Droste et~al.(2020)Droste, Jiao, and Noble]{droste2020unisal}
+Richard Droste, Jianbo Jiao, and J.~Alison Noble.
+\newblock Unified image and video saliency modeling.
+\newblock In \emph{ECCV}, 2020.
+\newblock arXiv:2003.05477.
+
+\bibitem[K{\"u}mmerer et~al.(2018)K{\"u}mmerer, Wallis, and
+  Bethge]{kummerer2018benchmarking}
+Matthias K{\"u}mmerer, Thomas S.~A. Wallis, and Matthias Bethge.
+\newblock Saliency benchmarking made easy: Separating models, maps and metrics.
+\newblock In \emph{ECCV}, 2018.
+\newblock arXiv:1704.08615.
+
+\bibitem[mit(2026)]{mit300}
+{MIT/T\"ubingen} saliency benchmark: {MIT300} results.
+\newblock \url{https://saliency.tuebingen.ai/results.html}, 2026.
+\newblock Accessed 21 October 2026.
+
+\bibitem[Shen and Zhao(2014)]{shen2014webpage}
+Chengyao Shen and Qi~Zhao.
+\newblock Webpage saliency.
+\newblock In \emph{ECCV}, 2014.
+
+\bibitem[Jiang et~al.(2023)Jiang, Leiva, Rezazadegan~Tavakoli, Houssel,
+  Kylm{\"a}l{\"a}, and Oulasvirta]{jiang2023ueyes}
+Yue Jiang, Luis~A. Leiva, Hamed Rezazadegan~Tavakoli, Paul R.~B. Houssel, Julia
+  Kylm{\"a}l{\"a}, and Antti Oulasvirta.
+\newblock {UEyes}: Understanding visual saliency across user interface types.
+\newblock In \emph{CHI}, 2023.
+\newblock \doi{10.1145/3544548.3581096}.
+
+\bibitem[Hosseini et~al.(2024)Hosseini, Kazerouni, Akhavan, Brudno, and
+  Taati]{hosseini2024sum}
+Alireza Hosseini, Amirhossein Kazerouni, Saeed Akhavan, Michael Brudno, and
+  Babak Taati.
+\newblock {SUM}: Saliency unification through {Mamba} for visual attention
+  modeling, 2024.
+\newblock arXiv:2406.17815.
+
+\bibitem[Ye and Wedel(2026)]{ye2026viasnet}
+J.~Ye and Michel Wedel.
+\newblock {ViASNet}: A video ad saliency network for predicting dynamic
+  saliency and viewer engagement, 2026.
+\newblock arXiv:2605.29302.
+
+\bibitem[Bylinskii et~al.(2019)Bylinskii, Judd, Oliva, Torralba, and
+  Durand]{bylinskii2019metrics}
+Zoya Bylinskii, Tilke Judd, Aude Oliva, Antonio Torralba, and Fr{\'e}do Durand.
+\newblock What do different evaluation metrics tell us about saliency models?
+\newblock \emph{IEEE TPAMI}, 41\penalty0 (3), 2019.
+\newblock arXiv:1604.03605.
+
+\bibitem[Tatler(2007)]{tatler2007central}
+Benjamin~W. Tatler.
+\newblock The central fixation bias in scene viewing: Selecting an optimal
+  viewing position independently of motor biases and image feature
+  distributions.
+\newblock \emph{Journal of Vision}, 7\penalty0 (14), 2007.
+\newblock \doi{10.1167/7.14.4}.
+
+\bibitem[{Neurons Inc.}(2025)]{neurons2025tech}
+{Neurons Inc.}
+\newblock Neurons {AI} tech paper, 2025.
+\newblock Public document linked from neuronsinc.com/neurons-ai, accessed
+  October 2026.
+
+\bibitem[Sandler et~al.(2018)Sandler, Howard, Zhu, Zhmoginov, and
+  Chen]{sandler2018mobilenetv2}
+Mark Sandler, Andrew Howard, Menglong Zhu, Andrey Zhmoginov, and Liang-Chieh
+  Chen.
+\newblock {MobileNetV2}: Inverted residuals and linear bottlenecks.
+\newblock In \emph{CVPR}, 2018.
+\newblock arXiv:1801.04381.
+
+\bibitem[Wang et~al.(2018)Wang, Shen, Guo, Cheng, and Borji]{wang2018dhf1k}
+Wenguan Wang, Jianbing Shen, Fang Guo, Ming-Ming Cheng, and Ali Borji.
+\newblock Revisiting video saliency: A large-scale benchmark and a new model.
+\newblock In \emph{CVPR}, 2018.
+\newblock arXiv:1801.07424.
+
+\bibitem[Shannon(1948)]{shannon1948}
+Claude~E. Shannon.
+\newblock A mathematical theory of communication.
+\newblock \emph{Bell System Technical Journal}, 27, 1948.
+\newblock \doi{10.1002/j.1538-7305.1948.tb01338.x}.
+
+\bibitem[Rosenholtz et~al.(2007)Rosenholtz, Li, and
+  Nakano]{rosenholtz2007clutter}
+Ruth Rosenholtz, Yuanzhen Li, and Lisa Nakano.
+\newblock Measuring visual clutter.
+\newblock \emph{Journal of Vision}, 7\penalty0 (2), 2007.
+\newblock \doi{10.1167/7.2.17}.
+
+\bibitem[Du et~al.(2020)]{du2020ppocr}
+Yuning Du et~al.
+\newblock {PP-OCR}: A practical ultra lightweight {OCR} system, 2020.
+\newblock arXiv:2009.09941.
+
+\bibitem[Minderer et~al.(2023)Minderer, Gritsenko, and
+  Houlsby]{minderer2023owlv2}
+Matthias Minderer, Alexey Gritsenko, and Neil Houlsby.
+\newblock Scaling open-vocabulary object detection.
+\newblock In \emph{NeurIPS}, 2023.
+\newblock arXiv:2306.09683.
+
+\bibitem[Needell and Bainbridge(2022)]{needell2022resmem}
+Coen~D. Needell and Wilma~A. Bainbridge.
+\newblock Embracing new techniques in deep learning for estimating image
+  memorability.
+\newblock \emph{Computational Brain \& Behavior}, 5, 2022.
+\newblock \doi{10.1007/s42113-022-00126-5}.
+
+\bibitem[Khosla et~al.(2015)Khosla, Raju, Torralba, and Oliva]{khosla2015lamem}
+Aditya Khosla, Akhil~S. Raju, Antonio Torralba, and Aude Oliva.
+\newblock Understanding and predicting image memorability at a large scale.
+\newblock In \emph{ICCV}, 2015.
+\newblock \doi{10.1109/ICCV.2015.275}.
+
+\bibitem[Goetschalckx and Wagemans(2019)]{goetschalckx2019memcat}
+Lore Goetschalckx and Johan Wagemans.
+\newblock {MemCat}: a new category-based image set quantified on memorability.
+\newblock \emph{PeerJ}, 7, 2019.
+\newblock \doi{10.7717/peerj.8169}.
+
+\bibitem[Isola et~al.(2011)Isola, Xiao, Torralba, and
+  Oliva]{isola2011memorable}
+Phillip Isola, Jianxiong Xiao, Antonio Torralba, and Aude Oliva.
+\newblock What makes an image memorable?
+\newblock In \emph{CVPR}, 2011.
+\newblock \doi{10.1109/CVPR.2011.5995721}.
+
+\bibitem[Radvansky et~al.(2011)Radvansky, Krawietz, and
+  Tamplin]{radvansky2011doorways}
+Gabriel~A. Radvansky, Sabine~A. Krawietz, and Andrea~K. Tamplin.
+\newblock Walking through doorways causes forgetting: Further explorations.
+\newblock \emph{Quarterly Journal of Experimental Psychology}, 64\penalty0 (8),
+  2011.
+\newblock \doi{10.1080/17470218.2011.571267}.
+
+\bibitem[Lucas and Kanade(1981)]{lucas1981iterative}
+Bruce~D. Lucas and Takeo Kanade.
+\newblock An iterative image registration technique with an application to
+  stereo vision.
+\newblock In \emph{IJCAI}, 1981.
+
+\bibitem[Shi and Tomasi(1994)]{shi1994good}
+Jianbo Shi and Carlo Tomasi.
+\newblock Good features to track.
+\newblock In \emph{CVPR}, 1994.
+\newblock \doi{10.1109/CVPR.1994.323794}.
+
+\bibitem[Teixeira et~al.(2010)Teixeira, Wedel, and
+  Pieters]{teixeira2010branding}
+Thales Teixeira, Michel Wedel, and Rik Pieters.
+\newblock Moment-to-moment optimal branding in {TV} commercials: Preventing
+  avoidance by pulsing.
+\newblock \emph{Marketing Science}, 29\penalty0 (5), 2010.
+\newblock \doi{10.1287/mksc.1100.0567}.
+
+\bibitem[Hou and Zhang(2007)]{hou2007spectral}
+Xiaodi Hou and Liqing Zhang.
+\newblock Saliency detection: A spectral residual approach.
+\newblock In \emph{CVPR}, 2007.
+\newblock \doi{10.1109/CVPR.2007.383267}.
+
+\bibitem[Mahapatra(2026)]{mahapatra2026mediaattention}
+Pratyush Mahapatra.
+\newblock {MediaAttention}: open predicted attention for ads.
+\newblock \url{https://github.com/pranikz/MediaAttention}, 2026.
+
+\end{thebibliography}

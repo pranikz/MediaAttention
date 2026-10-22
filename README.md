@@ -14,6 +14,7 @@
   <b><a href="https://pranikz.github.io/MediaAttention/">Website</a></b> ·
   <b><a href="https://huggingface.co/pranikz/MediaAttention-Ads">Model</a></b> ·
   <b><a href="docs/research/MediaAttention-report.pdf">Research report (PDF)</a></b> ·
+  <b><a href="docs/paper/main.pdf">Paper</a></b> ·
   <b><a href="#run-your-own-study">Run your own eye-tracking study</a></b>
 </p>
 

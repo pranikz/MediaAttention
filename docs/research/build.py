@@ -44,7 +44,7 @@ def bars(r, metric="CC"):
         v, se = r[k]["all"][metric]
         y = top + i * row + 8
         col = ACCENT if k == "unisal" else INK
-        s.append(f'<text x="{left - 10}" y="{y + 11}" text-anchor="end" class="lb">{NAMES[k]}{" (default)" if k == "unisal" else ""}</text>'
+        s.append(f'<text x="{left - 10}" y="{y + 11}" text-anchor="end" class="lb">{NAMES[k]}</text>'
                  f'<rect x="{left}" y="{y}" width="{x(v) - left:.1f}" height="14" rx="3" fill="{col}"/>'
                  f'<line x1="{x(v - 1.96 * se):.1f}" x2="{x(v + 1.96 * se):.1f}" y1="{y + 7}" y2="{y + 7}" stroke="#fff" stroke-width="1.5"/>'
                  f'<text x="{x(v) + 8:.1f}" y="{y + 11}" class="val">{v:.3f}</text>')
