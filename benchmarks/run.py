@@ -223,6 +223,13 @@ def metrics(pred, xs, ys, gt, shuffled):
             "KLD": M.MIT_KLDiv(pred, gt), "SIM": M.SIM(pred, gt)}
 
 
+def _free_gpu():
+    """MPS keeps buffers for every input shape it has seen; on 1,980 differently sized images that fills memory."""
+    import torch
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+
+
 def evaluate(dataset, model_names, limit=None):
     items, meta = DATASETS[dataset]()
     items = items[:limit] if limit else items
@@ -240,16 +247,25 @@ def evaluate(dataset, model_names, limit=None):
     rows = []
     for name in model_names:
         t_total = 0.0
+        done = cache_dir / name  # per-image results, so an interrupted run resumes where it stopped
+        done.mkdir(exist_ok=True)
         for i, it in enumerate(items):
-            img = Image.open(it["path"]).convert("RGB")
-            ppd, sigma = per_image_scale(it, meta)
-            t = time.perf_counter()
-            pred = MODELS[name](img, ppd)
-            t_total += time.perf_counter() - t
-            gt = fixation_map((img.height, img.width), it["x"], it["y"], sigma)
-            rest = [r for j, r in enumerate(rel) if j != i]
-            others = np.concatenate(rest) * [img.width, img.height] if rest else np.empty((0, 2))
-            m = metrics(pred, it["x"], it["y"], gt, others)
+            hit = done / f"{it['path'].name}.json"
+            if hit.exists():
+                m = json.loads(hit.read_text())
+            else:
+                img = Image.open(it["path"]).convert("RGB")
+                ppd, sigma = per_image_scale(it, meta)
+                t = time.perf_counter()
+                pred = MODELS[name](img, ppd)
+                dt = time.perf_counter() - t
+                _free_gpu()
+                gt = fixation_map((img.height, img.width), it["x"], it["y"], sigma)
+                rest = [r for j, r in enumerate(rel) if j != i]
+                others = np.concatenate(rest) * [img.width, img.height] if rest else np.empty((0, 2))
+                m = {**metrics(pred, it["x"], it["y"], gt, others), "_s": dt}
+                hit.write_text(json.dumps({k: float(v) for k, v in m.items()}))
+            t_total += m.pop("_s")
             rows.append({"model": name, "image": it["path"].name, "category": it["category"], **m})
             print(f"\r{name}: {i + 1}/{len(items)}", end="", file=sys.stderr)
         print(f"\r{name}: done, {t_total / len(items):.2f} s/image", file=sys.stderr)
